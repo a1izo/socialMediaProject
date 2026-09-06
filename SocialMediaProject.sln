@@ -1,8 +1,28 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Server", "Server", "{1C037BDE-4765-41B9-B2B5-B4087A19751F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Entities", "Entities\Entities.csproj", "{F1234715-A1D6-44DE-9F94-60199664296E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RepositoryContracts", "RepositoryContracts\RepositoryContracts.csproj", "{9900CFE8-0F47-4337-9320-982BF6806EB2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{F1234715-A1D6-44DE-9F94-60199664296E} = {1C037BDE-4765-41B9-B2B5-B4087A19751F}
+		{9900CFE8-0F47-4337-9320-982BF6806EB2} = {1C037BDE-4765-41B9-B2B5-B4087A19751F}
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F1234715-A1D6-44DE-9F94-60199664296E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F1234715-A1D6-44DE-9F94-60199664296E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F1234715-A1D6-44DE-9F94-60199664296E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F1234715-A1D6-44DE-9F94-60199664296E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9900CFE8-0F47-4337-9320-982BF6806EB2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9900CFE8-0F47-4337-9320-982BF6806EB2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9900CFE8-0F47-4337-9320-982BF6806EB2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9900CFE8-0F47-4337-9320-982BF6806EB2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
