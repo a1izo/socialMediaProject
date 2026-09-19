@@ -1,4 +1,5 @@
 ﻿using Entities;
+using RepositoryContracts;
 
 namespace InMemoryRepositories;
 
@@ -7,7 +8,12 @@ public class PostInMemoryRepository : IPostRepository
     private readonly List<Post> posts = new();
     private readonly List<PostLike> postLikes = new();
     private readonly List<PostTag> postTags = new();
-    private readonly List<Tag> tags = new();
+    private readonly ITagRepository tagRepository;
+
+    public PostInMemoryRepository(ITagRepository tagRepository)
+    {
+        this.tagRepository = tagRepository;
+    }
 
     public Task<Post> AddAsync(Post post)
     {
@@ -103,6 +109,13 @@ public class PostInMemoryRepository : IPostRepository
 
     public Task AddTagAsync(int postId, int tagId)
     {
+        bool tagExists = tagRepository.GetMany().Any(t => t.Id == tagId);
+        if (!tagExists)
+        {
+            throw new InvalidOperationException(
+                $"Tag with ID '{tagId}' not found");
+        }
+
         bool alreadyTagged = postTags.Any(pt => pt.PostId == postId && pt.TagId == tagId);
         if (alreadyTagged)
         {
@@ -134,9 +147,9 @@ public class PostInMemoryRepository : IPostRepository
         return Task.CompletedTask;
     }
 
-    public IQueryable<Tag> GetTagsForPostAsync(int postId)
+    public IQueryable<Tag> GetTagsForPost(int postId)
     {
         List<int> tagIds = postTags.Where(pt => pt.PostId == postId).Select(pt => pt.TagId).ToList();
-        return tags.Where(t => tagIds.Contains(t.Id)).AsQueryable();
+        return tagRepository.GetMany().Where(t => tagIds.Contains(t.Id));
     }
 }

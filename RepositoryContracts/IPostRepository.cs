@@ -1,5 +1,7 @@
 ﻿using Entities;
 
+namespace RepositoryContracts;
+
 public interface IPostRepository
 {
     Task<Post> AddAsync(Post post);
@@ -16,5 +18,5 @@ public interface IPostRepository
     //tag logic
     Task AddTagAsync(int postId, int tagId);
     Task RemoveTagAsync(int postId, int tagId);
-    IQueryable<Tag> GetTagsForPostAsync(int postId);
+    IQueryable<Tag> GetTagsForPost(int postId);
 }

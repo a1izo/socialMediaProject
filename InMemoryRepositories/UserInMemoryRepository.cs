@@ -1,6 +1,8 @@
 ﻿using Entities;
 using RepositoryContracts;
 
+namespace InMemoryRepositories;
+
 public class UserInMemoryRepository : IUserRepository
 {
     private readonly List<User> users = new();
@@ -97,13 +99,13 @@ public class UserInMemoryRepository : IUserRepository
         return Task.CompletedTask;
     }
 
-    public IQueryable<User> GetFollowersAsync(int userId)
+    public IQueryable<User> GetFollowers(int userId)
     {
         List<int> followerIds = follows.Where(f => f.FollowingId == userId).Select(f => f.FollowerId).ToList();
         return users.Where(u => followerIds.Contains(u.Id)).AsQueryable();
     }
 
-    public IQueryable<User> GetFollowingAsync(int userId)
+    public IQueryable<User> GetFollowing(int userId)
     {
         List<int> followingIds = follows.Where(f => f.FollowerId == userId).Select(f => f.FollowingId).ToList();
         return users.Where(u => followingIds.Contains(u.Id)).AsQueryable();

@@ -1,5 +1,7 @@
 ﻿using Entities;
 
+namespace RepositoryContracts;
+
 public interface ITagRepository
 {
     Task<Tag> AddAsync(Tag tag);

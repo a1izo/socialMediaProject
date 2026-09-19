@@ -1,4 +1,7 @@
 ﻿using Entities;
+using RepositoryContracts;
+
+namespace InMemoryRepositories;
 
 public class TagInMemoryRepository : ITagRepository
 {

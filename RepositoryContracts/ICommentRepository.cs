@@ -1,5 +1,7 @@
 ﻿using Entities;
 
+namespace RepositoryContracts;
+
 public interface ICommentRepository
 {
     Task<Comment> AddAsync(Comment comment);
@@ -7,7 +9,7 @@ public interface ICommentRepository
     Task DeleteAsync(int id);
     Task<Comment> GetSingleAsync(int id);
     IQueryable<Comment> GetMany();
-    
+
     //like logic
     Task LikeAsync(int commentId, int userId);
     Task UnlikeAsync(int commentId, int userId);
