@@ -8,6 +8,43 @@ public class UserInMemoryRepository : IUserRepository
     private readonly List<User> users = new();
     private readonly List<Follow> follows = new();
 
+    public UserInMemoryRepository()
+    {
+        SeedData();
+    }
+
+    private void SeedData()
+    {
+        users.AddRange(new[]
+        {
+            new User { Id = 1, UserName = "alizo", Password = "password1", Email = "alizo@example.com", PhoneNumber = null, IsModerator = true, CreatedDate = DateTime.Now.AddDays(-30) },
+            new User { Id = 2, UserName = "reze", Password = "password2", Email = "reze@example.com", PhoneNumber = null, IsModerator = false, CreatedDate = DateTime.Now.AddDays(-29) },
+            new User { Id = 3, UserName = "mikeexile", Password = "password3", Email = "mikeexile@example.com", PhoneNumber = null, IsModerator = false, CreatedDate = DateTime.Now.AddDays(-28) },
+            new User { Id = 4, UserName = "toyotazeppelin", Password = "password4", Email = "toyotazeppelin@example.com", PhoneNumber = null, IsModerator = false, CreatedDate = DateTime.Now.AddDays(-27) }
+        });
+
+        // everyone follows everyone
+        int followId = 1;
+        foreach (User follower in users)
+        {
+            foreach (User following in users)
+            {
+                if (follower.Id == following.Id)
+                {
+                    continue;
+                }
+
+                follows.Add(new Follow
+                {
+                    Id = followId++,
+                    FollowerId = follower.Id,
+                    FollowingId = following.Id,
+                    CreatedDate = DateTime.Now.AddDays(-26)
+                });
+            }
+        }
+    }
+
     public Task<User> AddAsync(User user)
     {
         user.Id = users.Any() ? users.Max(u => u.Id) + 1 : 1;

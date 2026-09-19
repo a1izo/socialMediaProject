@@ -7,6 +7,22 @@ public class TagInMemoryRepository : ITagRepository
 {
     private readonly List<Tag> tags = new();
 
+    public TagInMemoryRepository()
+    {
+        SeedData();
+    }
+
+    private void SeedData()
+    {
+        tags.AddRange(new[]
+        {
+            new Tag { Id = 1, Name = "random" },
+            new Tag { Id = 2, Name = "bs" },
+            new Tag { Id = 3, Name = "cars" },
+            new Tag { Id = 4, Name = "question" }
+        });
+    }
+
     public Task<Tag> AddAsync(Tag tag)
     {
         tag.Id = tags.Any() ? tags.Max(t => t.Id) + 1 : 1;
