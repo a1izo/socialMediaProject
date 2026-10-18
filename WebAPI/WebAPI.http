@@ -1,0 +1,65 @@
+@WebAPI_HostAddress = http://localhost:5067
+
+### Create user
+POST {{WebAPI_HostAddress}}/users
+Content-Type: application/json
+
+{
+  "userName": "alice",
+  "password": "secret",
+  "email": "alice@example.com"
+}
+
+### Get users whose name contains "al"
+GET {{WebAPI_HostAddress}}/users?userNameContains=al
+
+### Create post
+POST {{WebAPI_HostAddress}}/posts
+Content-Type: application/json
+
+{
+  "title": "Hello world",
+  "body": "My first post",
+  "userId": 1
+}
+
+### Get posts filtered by title / author, top 10 most liked
+GET {{WebAPI_HostAddress}}/posts?titleContains=hello&userName=alice&orderBy=likes&take=10
+
+### Get single post including comments
+GET {{WebAPI_HostAddress}}/posts/1?includeComments=true
+
+### Like post
+POST {{WebAPI_HostAddress}}/posts/1/likes
+Content-Type: application/json
+
+{
+  "userId": 1
+}
+
+### Create comment
+POST {{WebAPI_HostAddress}}/comments
+Content-Type: application/json
+
+{
+  "body": "Nice post!",
+  "userId": 1,
+  "postId": 1
+}
+
+### Get comments filtered by post and user
+GET {{WebAPI_HostAddress}}/comments?postId=1&userId=1
+
+### Get comments for a post (nested route)
+GET {{WebAPI_HostAddress}}/posts/1/comments
+
+### Update comment
+PUT {{WebAPI_HostAddress}}/comments/1
+Content-Type: application/json
+
+{
+  "body": "Edited comment"
+}
+
+### Delete comment
+DELETE {{WebAPI_HostAddress}}/comments/1

@@ -4,3 +4,12 @@ obj/
 riderModule.iml
 /_ReSharper.Caches/
 CLI/*.json
+# Data files written by the file repositories when running the Web API
+WebAPI/users.json
+WebAPI/follows.json
+WebAPI/posts.json
+WebAPI/postLikes.json
+WebAPI/postTags.json
+WebAPI/comments.json
+WebAPI/commentLikes.json
+WebAPI/tags.json

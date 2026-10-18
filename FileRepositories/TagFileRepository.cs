@@ -27,7 +27,7 @@ public class TagFileRepository : ITagRepository
         Tag? existingTag = tags.SingleOrDefault(t => t.Id == tag.Id);
         if (existingTag is null)
         {
-            throw new InvalidOperationException(
+            throw new NotFoundException(
                 $"Tag with ID '{tag.Id}' not found");
         }
 
@@ -42,7 +42,7 @@ public class TagFileRepository : ITagRepository
         Tag? tagToRemove = tags.SingleOrDefault(t => t.Id == id);
         if (tagToRemove is null)
         {
-            throw new InvalidOperationException(
+            throw new NotFoundException(
                 $"Tag with ID '{id}' not found");
         }
 
@@ -56,7 +56,7 @@ public class TagFileRepository : ITagRepository
         Tag? tag = tags.SingleOrDefault(t => t.Id == id);
         if (tag is null)
         {
-            throw new InvalidOperationException(
+            throw new NotFoundException(
                 $"Tag with ID '{id}' not found");
         }
 
