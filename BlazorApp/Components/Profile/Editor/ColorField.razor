@@ -1,0 +1,49 @@
+@* A color picker plus a text box. The text box accepts any CSS color (including #rrggbbaa for
+   transparency). With AllowInherit the field can be cleared to fall back to the theme. *@
+<div class="ed-field ed-color">
+    <span class="ed-label">@Label</span>
+    <div class="ed-color-row">
+        <input type="color" class="ed-swatch" value="@SwatchValue" @oninput="OnSwatchAsync" aria-label="@Label" />
+        <input class="input input-sm" value="@Value" @onchange="OnTextAsync" placeholder="@(AllowInherit ? "inherit" : "#000000")" spellcheck="false" />
+        @if (AllowInherit && !string.IsNullOrEmpty(Value))
+        {
+            <button type="button" class="tool-btn" title="inherit from theme" @onclick="ClearAsync"><Icon Name="x" Size="12" /></button>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Label { get; set; } = "";
+    [Parameter] public string? Value { get; set; }
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+    [Parameter] public bool AllowInherit { get; set; }
+
+    // <input type="color"> only understands #rrggbb
+    private string SwatchValue => Value is { Length: >= 7 } && Value.StartsWith('#') ? Value[..7] : "#000000";
+
+    private async Task OnSwatchAsync(ChangeEventArgs e)
+    {
+        string picked = e.Value?.ToString() ?? "#000000";
+        // keep the transparency part if the old value had one
+        string alpha = Value is { Length: 9 } && Value.StartsWith('#') ? Value[7..] : "";
+        await ValueChanged.InvokeAsync(picked + alpha);
+    }
+
+    private async Task OnTextAsync(ChangeEventArgs e)
+    {
+        string text = e.Value?.ToString()?.Trim() ?? "";
+        if (text.Length == 0 && AllowInherit)
+        {
+            await ValueChanged.InvokeAsync(null);
+        }
+        else if (CssValues.IsColor(text))
+        {
+            await ValueChanged.InvokeAsync(text);
+        }
+    }
+
+    private async Task ClearAsync()
+    {
+        await ValueChanged.InvokeAsync(null);
+    }
+}

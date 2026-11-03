@@ -1,0 +1,37 @@
+﻿<!DOCTYPE html>
+<html lang="en" data-shell="void">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0a0a0b" />
+    <base href="/" />
+    <title>cybernet</title>
+    <script>
+        // apply the remembered site mode before anything renders, so there is no flash
+        try { document.documentElement.dataset.shell = localStorage.getItem('cn-shell') || 'void'; } catch (e) { }
+    </script>
+    <ResourcePreloader />
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@400;500;700&family=Unbounded:wght@400;600;800&display=swap" />
+    <link rel="stylesheet" href="@Assets["css/tokens.css"]" />
+    <link rel="stylesheet" href="@Assets["css/base.css"]" />
+    <link rel="stylesheet" href="@Assets["css/shell.css"]" />
+    <link rel="stylesheet" href="@Assets["css/components.css"]" />
+    <link rel="stylesheet" href="@Assets["css/profile.css"]" />
+    <link rel="stylesheet" href="@Assets["css/editor.css"]" />
+    <link rel="stylesheet" href="@Assets["BlazorApp.styles.css"]" />
+    <ImportMap />
+    <HeadOutlet @rendermode="new InteractiveServerRenderMode(prerender: false)" />
+</head>
+
+<body>
+    <Routes @rendermode="new InteractiveServerRenderMode(prerender: false)" />
+    <ReconnectModal />
+    <script src="js/cybernet.js"></script>
+    <script src="@Assets["_framework/blazor.web.js"]"></script>
+</body>
+
+</html>

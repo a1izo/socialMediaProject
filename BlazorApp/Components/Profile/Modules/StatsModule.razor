@@ -1,0 +1,8 @@
+@inherits ProfileModuleBase
+
+<div class="stats stats-@(Settings.Layout == "inline" ? "inline" : "tiles")">
+    <a class="stat" href="/u/@Profile.UserName"><b>@Profile.Stats.PostCount</b><span>posts</span></a>
+    <a class="stat" href="/u/@Profile.UserName/followers"><b>@Profile.Stats.FollowerCount</b><span>followers</span></a>
+    <a class="stat" href="/u/@Profile.UserName/following"><b>@Profile.Stats.FollowingCount</b><span>following</span></a>
+    <span class="stat"><b>@Profile.Stats.LikesReceived</b><span>likes</span></span>
+</div>

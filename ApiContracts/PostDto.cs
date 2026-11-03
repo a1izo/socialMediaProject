@@ -9,6 +9,9 @@ public class PostDto
     public required string AuthorUserName { get; set; }
     public DateTime CreatedDate { get; set; }
     public int LikeCount { get; set; }
+    public int CommentCount { get; set; }
+    public List<int> LikedByUserIds { get; set; } = new();
+    public List<TagDto> Tags { get; set; } = new();
 
     public List<CommentDto>? Comments { get; set; }
 }

@@ -1,0 +1,399 @@
+@page "/u/{UserName}"
+@implements IAsyncDisposable
+@inject IProfileService ProfileService
+@inject IUserService UserService
+@inject ProfileCardCache CardCache
+@inject ApiConfig Api
+@inject IJSRuntime Js
+@inject NavigationManager NavMgr
+
+<PageTitle>@(view?.DisplayName ?? UserName) // cybernet</PageTitle>
+
+@if (loading)
+{
+    <div class="container"><Loading Label="tuning in" /></div>
+}
+else if (view is null)
+{
+    <div class="container narrow">
+        <ErrorBanner Message="@error" />
+        <a class="btn" href="/people">find people</a>
+    </div>
+}
+else
+{
+    if (editing)
+    {
+        <NavigationLock ConfirmExternalNavigation="@dirty" OnBeforeInternalNavigation="ConfirmLeaveAsync" />
+        <div class="editor-bar">
+            <span class="hud-label">EDIT MODE @(dirty ? "// UNSAVED" : "")</span>
+            <div class="editor-bar-tabs">
+                <button type="button" class="@(panel == "theme" ? "is-active" : "")" @onclick='() => OpenPanel("theme")'><Icon Name="palette" Size="14" /> theme</button>
+                <button type="button" class="@(panel == "header" ? "is-active" : "")" @onclick='() => OpenPanel("header")'><Icon Name="user" Size="14" /> header</button>
+                <button type="button" class="@(panel == "add" ? "is-active" : "")" @onclick='() => OpenPanel("add")'><Icon Name="plus" Size="14" /> add module</button>
+                <button type="button" class="@(panel == "css" ? "is-active" : "")" @onclick='() => OpenPanel("css")'><Icon Name="css" Size="14" /> custom css</button>
+            </div>
+            <span class="spacer"></span>
+            <button type="button" class="btn btn-sm btn-ghost" @onclick="DiscardAsync">discard</button>
+            <button type="button" class="btn btn-sm btn-primary" @onclick="SaveAsync" disabled="@saving">
+                <Icon Name="check" Size="14" /> @(saving ? "saving" : "save")
+            </button>
+        </div>
+    }
+
+    <div class="profile-root cn-themed cn-profile-u@(view.UserId) @ThemeCss.Classes(view.Theme) @(editing ? "is-editing" : "") @(panel is not null && editing ? "has-drawer" : "")"
+         style="@ThemeCss.Variables(view.Theme) @ThemeCss.Background(view.Theme, Api)">
+
+        <FontLinks Urls="@ThemeCss.FontUrls(view.Theme)" />
+        @if (!plainView && !string.IsNullOrWhiteSpace(view.CustomCss))
+        {
+            @((MarkupString)$"<style>{ScopedCss}</style>")
+        }
+
+        <div class="profile-fx" aria-hidden="true"></div>
+        @if (view.Theme.Sparkles)
+        {
+            <SparkleLayer Seed="view.UserId" Density="view.Theme.SparkleDensity" />
+        }
+
+        <div class="profile-inner">
+            <ErrorBanner Message="@error" />
+
+            <ProfileHeader Profile="view">
+                @if (isOwner)
+                {
+                    if (!editing)
+                    {
+                        <button type="button" class="btn btn-primary" @onclick="StartEditing"><Icon Name="palette" Size="14" /> customize</button>
+                    }
+                }
+                else
+                {
+                    <FollowButton TargetUserId="view.UserId" CurrentUserId="currentUserId" @bind-IsFollowing="isFollowing" @bind-IsFollowing:after="RefreshStatsAsync" />
+                }
+                @if (!isOwner && !string.IsNullOrWhiteSpace(view.CustomCss))
+                {
+                    <button type="button" class="btn btn-ghost btn-sm" @onclick="() => plainView = !plainView"
+                            title="@(plainView ? "show their custom css" : "hide their custom css")">
+                        <Icon Name="@(plainView ? "eye" : "eye-off")" Size="14" /> @(plainView ? "styled view" : "plain view")
+                    </button>
+                }
+            </ProfileHeader>
+
+            <div class="profile-grid">
+                @for (int i = 0; i < view.Modules.Count; i++)
+                {
+                    int index = i;
+                    ProfileModuleDto module = view.Modules[i];
+                    if (module.IsVisible || editing)
+                    {
+                        <ModuleFrame @key="module" Profile="view" Module="module" Index="index" Editing="editing"
+                                     Selected="@(editing && selectedIndex == index)"
+                                     OnSelect="SelectModule" OnDragStart="i => dragIndex = i" OnDropOn="DropOnAsync"
+                                     OnMove="d => Move(index, d)" OnResize="d => Resize(index, d)" OnChanged="MarkDirty" />
+                    }
+                }
+                @if (editing)
+                {
+                    <button type="button" class="module-add-tile span-12" @onclick='() => OpenPanel("add")'
+                            @ondragover:preventDefault="true" @ondrop="DropAtEnd">
+                        <Icon Name="plus" Size="20" /> add a module
+                    </button>
+                }
+                else if (view.Modules.Count(m => m.IsVisible) == 0)
+                {
+                    <div class="module span-12"><p class="module-empty">this profile is a blank canvas.</p></div>
+                }
+            </div>
+        </div>
+    </div>
+
+    if (editing && panel is not null)
+    {
+        <ProfileEditor Profile="view" Panel="@panel" SelectedModule="SelectedModule" CurrentUserId="currentUserId"
+                       OnChanged="MarkDirty" OnClose="() => panel = null" OnAddModule="AddModule"
+                       OnDeleteModule="DeleteSelected" OnDuplicateModule="DuplicateSelected" />
+    }
+}
+
+@code {
+    [Parameter] public string UserName { get; set; } = "";
+    [SupplyParameterFromQuery(Name = "edit")] public bool? EditOnLoad { get; set; }
+
+    [CascadingParameter] public Task<AuthenticationState> State { get; set; } = default!;
+
+    // "saved" is what the server has; "view" is what is rendered (a working copy while editing)
+    private ProfileDto? saved;
+    private ProfileDto? view;
+    private bool loading = true;
+    private bool editing;
+    private bool dirty;
+    private bool saving;
+    private bool plainView;
+    private bool isOwner;
+    private bool isFollowing;
+    private int? currentUserId;
+    private int? selectedIndex;
+    private int? dragIndex;
+    private string? panel;
+    private string? error;
+    private string? loadedUserName;
+    private string? trailState;
+
+    private ProfileModuleDto? SelectedModule =>
+        selectedIndex is not null && view is not null && selectedIndex < view.Modules.Count ? view.Modules[selectedIndex.Value] : null;
+
+    private string ScopedCss => ProfileCss.Scope(view!.CustomCss, $".cn-profile-u{view.UserId}")
+        .Replace("url(\"/uploads/", $"url(\"{Api.BaseUrl}/uploads/");
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (loadedUserName == UserName)
+        {
+            return;
+        }
+
+        loadedUserName = UserName;
+        loading = true;
+        editing = false;
+        error = null;
+        try
+        {
+            currentUserId = (await State).User.GetUserId();
+            saved = await ProfileService.GetProfileAsync(UserName);
+            view = saved;
+            isOwner = currentUserId == saved.UserId;
+            if (currentUserId is not null && !isOwner)
+            {
+                List<UserDto> followers = await UserService.GetFollowersAsync(saved.UserId);
+                isFollowing = followers.Any(u => u.Id == currentUserId);
+            }
+
+            if (isOwner && EditOnLoad == true)
+            {
+                StartEditing();
+            }
+        }
+        catch (Exception e)
+        {
+            error = e.Message;
+            view = null;
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // the sparkle trail follows the mouse, which needs a few lines of JS
+        string wanted = view is not null && view.Theme.SparkleTrail && !plainView
+            ? CssValues.Color(view.Theme.Accent, "#ffffff")
+            : "off";
+        if (wanted == trailState)
+        {
+            return;
+        }
+
+        trailState = wanted;
+        try
+        {
+            if (wanted == "off")
+            {
+                await Js.InvokeVoidAsync("cybernet.trail.disable");
+            }
+            else
+            {
+                await Js.InvokeVoidAsync("cybernet.trail.enable", wanted);
+            }
+        }
+        catch (JSDisconnectedException)
+        {
+            // the circuit is gone
+        }
+    }
+
+    private void StartEditing()
+    {
+        view = Clone(saved!);
+        editing = true;
+        dirty = false;
+        panel = "theme";
+        selectedIndex = null;
+    }
+
+    private void OpenPanel(string name)
+    {
+        panel = panel == name ? null : name;
+        if (name != "module")
+        {
+            selectedIndex = null;
+        }
+    }
+
+    private void SelectModule(int index)
+    {
+        selectedIndex = index;
+        panel = "module";
+    }
+
+    private void MarkDirty()
+    {
+        dirty = true;
+    }
+
+    private void AddModule(string type)
+    {
+        view!.Modules.Add(ModuleCatalog.Create(type));
+        selectedIndex = view.Modules.Count - 1;
+        panel = "module";
+        dirty = true;
+    }
+
+    private void DeleteSelected()
+    {
+        if (SelectedModule is null) return;
+        view!.Modules.RemoveAt(selectedIndex!.Value);
+        selectedIndex = null;
+        panel = "add";
+        dirty = true;
+    }
+
+    private void DuplicateSelected()
+    {
+        if (SelectedModule is null) return;
+        ProfileModuleDto copy = System.Text.Json.JsonSerializer.Deserialize<ProfileModuleDto>(
+            System.Text.Json.JsonSerializer.Serialize(SelectedModule))!;
+        view!.Modules.Insert(selectedIndex!.Value + 1, copy);
+        selectedIndex++;
+        dirty = true;
+    }
+
+    private void DropOnAsync(int targetIndex)
+    {
+        if (dragIndex is null || dragIndex == targetIndex) return;
+        MoveTo(dragIndex.Value, targetIndex);
+        dragIndex = null;
+    }
+
+    private void DropAtEnd()
+    {
+        if (dragIndex is null) return;
+        MoveTo(dragIndex.Value, view!.Modules.Count - 1);
+        dragIndex = null;
+    }
+
+    private void Move(int index, int direction)
+    {
+        int target = index + direction;
+        if (target < 0 || target >= view!.Modules.Count) return;
+        MoveTo(index, target);
+    }
+
+    private void MoveTo(int from, int to)
+    {
+        ProfileModuleDto module = view!.Modules[from];
+        view.Modules.RemoveAt(from);
+        view.Modules.Insert(to, module);
+        if (selectedIndex == from) selectedIndex = to;
+        dirty = true;
+    }
+
+    private void Resize(int index, int direction)
+    {
+        ProfileModuleDto module = view!.Modules[index];
+        int[] spans = ProfileModuleTypes.AllowedSpans;
+        int current = Array.IndexOf(spans, module.Span);
+        int next = Math.Clamp((current < 0 ? 2 : current) + direction, 0, spans.Length - 1);
+        module.Span = spans[next];
+        dirty = true;
+    }
+
+    private async Task SaveAsync()
+    {
+        saving = true;
+        error = null;
+        try
+        {
+            await ProfileService.UpdateProfileAsync(view!.UserId, new UpdateProfileDto
+            {
+                DisplayName = view.DisplayName,
+                Tagline = view.Tagline,
+                AvatarUrl = view.AvatarUrl,
+                BannerUrl = view.BannerUrl,
+                Theme = view.Theme,
+                CustomCss = view.CustomCss,
+                Modules = view.Modules
+            });
+            CardCache.Invalidate(view.UserId);
+            saved = await ProfileService.GetProfileAsync(view.UserName);
+            view = saved;
+            editing = false;
+            dirty = false;
+            panel = null;
+            selectedIndex = null;
+        }
+        catch (Exception e)
+        {
+            error = e.Message;
+        }
+        finally
+        {
+            saving = false;
+        }
+    }
+
+    private async Task DiscardAsync()
+    {
+        if (dirty && !await Js.InvokeAsync<bool>("confirm", "discard your unsaved changes?"))
+        {
+            return;
+        }
+
+        view = saved;
+        editing = false;
+        dirty = false;
+        panel = null;
+        selectedIndex = null;
+    }
+
+    private async Task ConfirmLeaveAsync(LocationChangingContext context)
+    {
+        if (dirty && !await Js.InvokeAsync<bool>("confirm", "leave without saving your profile?"))
+        {
+            context.PreventNavigation();
+        }
+    }
+
+    private async Task RefreshStatsAsync()
+    {
+        try
+        {
+            CardCache.Invalidate(saved!.UserId);
+            saved = await ProfileService.GetProfileAsync(UserName);
+            view = saved;
+        }
+        catch (Exception e)
+        {
+            error = e.Message;
+        }
+    }
+
+    private static ProfileDto Clone(ProfileDto profile)
+    {
+        return System.Text.Json.JsonSerializer.Deserialize<ProfileDto>(System.Text.Json.JsonSerializer.Serialize(profile))!;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            await Js.InvokeVoidAsync("cybernet.trail.disable");
+        }
+        catch (JSDisconnectedException)
+        {
+            // the circuit is gone
+        }
+    }
+}

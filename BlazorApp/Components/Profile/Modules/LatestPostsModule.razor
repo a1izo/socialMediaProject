@@ -1,0 +1,45 @@
+@inherits ProfileModuleBase
+@inject IPostService PostService
+
+@if (posts is null)
+{
+    <Loading />
+}
+else if (posts.Count == 0)
+{
+    <p class="module-empty">no posts yet.</p>
+}
+else
+{
+    <div class="post-list post-list-compact">
+        @foreach (PostDto post in posts)
+        {
+            <PostCard @key="post.Id" Post="post" ShowAuthor="false" Compact="true" ShowExcerpt="@(Settings.ShowExcerpt ?? true)" />
+        }
+    </div>
+}
+
+@code {
+    private List<PostDto>? posts;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!ShouldReload())
+        {
+            return;
+        }
+
+        try
+        {
+            posts = await PostService.GetPostsAsync(new PostQuery
+            {
+                UserId = Profile.UserId,
+                Take = Math.Clamp(Settings.Count ?? 5, 1, 20)
+            });
+        }
+        catch (Exception)
+        {
+            posts = new();
+        }
+    }
+}

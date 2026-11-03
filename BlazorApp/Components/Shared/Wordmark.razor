@@ -1,0 +1,9 @@
+@* "cybernet" in wide display type, with the star glinting off the end. On hover the letters split into red and blue. *@
+<span class="wordmark @(Large ? "wordmark-lg" : "")" data-text="cybernet" aria-label="cybernet">
+    <span class="wm-text">cyber<span class="wm-net">net</span></span>
+    <StarGlyph Size="@(Large ? 40 : 12)" Class="wm-star" />
+</span>
+
+@code {
+    [Parameter] public bool Large { get; set; }
+}

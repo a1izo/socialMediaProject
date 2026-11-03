@@ -1,0 +1,96 @@
+@page "/people"
+@inject IUserService UserService
+@inject ProfileCardCache CardCache
+
+<PageTitle>people // cybernet</PageTitle>
+
+<div class="container">
+    <section class="feed-hero">
+        <span class="hud-label">CN.DIRECTORY // @users.Count NODES</span>
+        <h1 class="display">people</h1>
+        <div class="search-box">
+            <Icon Name="search" />
+            <input class="input" placeholder="search by user name" @bind="search" @bind:event="oninput" @bind:after="SearchAsync" />
+        </div>
+    </section>
+
+    <ErrorBanner Message="@error" />
+
+    @if (loading)
+    {
+        <Loading />
+    }
+    else if (users.Count == 0)
+    {
+        <div class="empty-state"><p>no one matches "@search".</p></div>
+    }
+    else
+    {
+        <div class="user-grid">
+            @foreach (UserDto user in users)
+            {
+                ProfileCardDto? card = CardCache.Get(user.Id);
+                if (card is null) continue;
+                <UserTile @key="user.Id" Card="card">
+                    <FollowButton TargetUserId="user.Id" CurrentUserId="currentUserId" Class="btn-sm"
+                                  IsFollowing="@followingIds.Contains(user.Id)" IsFollowingChanged="f => OnFollowChanged(user.Id, f)" />
+                </UserTile>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [CascadingParameter] public Task<AuthenticationState> State { get; set; } = default!;
+
+    private List<UserDto> users = new();
+    private HashSet<int> followingIds = new();
+    private int? currentUserId;
+    private string search = "";
+    private bool loading = true;
+    private string? error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        currentUserId = (await State).User.GetUserId();
+        try
+        {
+            if (currentUserId is not null)
+            {
+                followingIds = (await UserService.GetFollowingAsync(currentUserId.Value)).Select(u => u.Id).ToHashSet();
+            }
+        }
+        catch (Exception e)
+        {
+            error = e.Message;
+        }
+
+        await SearchAsync();
+    }
+
+    private async Task SearchAsync()
+    {
+        error = null;
+        try
+        {
+            List<UserDto> found = await UserService.GetUsersAsync(search);
+            await CardCache.EnsureAsync(found.Select(u => u.Id));
+            users = found;
+        }
+        catch (Exception e)
+        {
+            error = e.Message;
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private void OnFollowChanged(int userId, bool following)
+    {
+        if (following) followingIds.Add(userId);
+        else followingIds.Remove(userId);
+        CardCache.Invalidate(userId);
+    }
+}

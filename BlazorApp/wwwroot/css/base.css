@@ -1,0 +1,159 @@
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+}
+
+img, svg {
+    display: block;
+    max-width: 100%;
+}
+
+h1, h2, h3, h4 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 600;
+    line-height: 1.05;
+    text-transform: var(--heading-case);
+    letter-spacing: var(--tracking);
+}
+
+p {
+    margin: 0 0 var(--space-3);
+}
+
+a {
+    color: inherit;
+    text-decoration-color: color-mix(in srgb, var(--accent) 70%, transparent);
+    text-underline-offset: 3px;
+}
+
+a:hover {
+    color: var(--accent);
+}
+
+button {
+    font: inherit;
+    color: inherit;
+}
+
+code {
+    font-family: var(--font-mono);
+    font-size: 0.88em;
+    padding: 1px 5px;
+    background: color-mix(in srgb, var(--text) 10%, transparent);
+    border-radius: 2px;
+}
+
+::selection {
+    background: var(--accent);
+    color: var(--on-accent);
+}
+
+:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+}
+
+hr {
+    border: 0;
+    border-top: 1px solid var(--line);
+    margin: var(--space-4) 0;
+}
+
+/* layout helpers */
+.container {
+    width: 100%;
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: var(--space-6) var(--space-5) var(--space-8);
+}
+
+.container.narrow {
+    max-width: 760px;
+}
+
+.row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.row.gap { gap: var(--space-3); }
+.row.gap-sm { gap: var(--space-2); }
+
+.spacer {
+    flex: 1;
+}
+
+.muted {
+    color: var(--muted);
+}
+
+.small {
+    font-size: var(--text-sm);
+}
+
+.display {
+    font-family: var(--font-display);
+    font-size: var(--text-2xl);
+    font-weight: 800;
+    line-height: 0.98;
+    letter-spacing: -0.02em;
+    margin-bottom: var(--space-4);
+}
+
+.display em {
+    font-style: normal;
+    color: var(--accent);
+}
+
+.visually-hidden {
+    position: absolute !important;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+
+/* tiny monospace technical labels, used everywhere */
+.hud-label {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    line-height: 1.4;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* Blazor error UI from the template */
+#blazor-error-ui {
+    display: none;
+}

@@ -1,0 +1,288 @@
+@page "/posts/{Id:int}"
+@inject IPostService PostService
+@inject ICommentService CommentService
+@inject ITagService TagService
+@inject ProfileCardCache CardCache
+@inject NavigationManager NavMgr
+
+<PageTitle>@(post?.Title ?? "post") // cybernet</PageTitle>
+
+<div class="container narrow">
+    <a class="back-link" href="/"><Icon Name="arrow-left" Size="14" /> feed</a>
+
+    <ErrorBanner Message="@error" />
+
+    @if (loading)
+    {
+        <Loading />
+    }
+    else if (post is not null)
+    {
+        <article class="post-full hud-frame">
+            <span class="hud-label">POST.@post.Id.ToString("000") // @TimeFormat.Stamp(post.CreatedDate)</span>
+
+            <div class="post-full-author">
+                <UserChip UserName="@post.AuthorUserName" Card="@CardCache.Get(post.UserId)" AvatarSize="40" />
+            </div>
+
+            @if (editing)
+            {
+                <div class="form">
+                    <label class="field">
+                        <span class="field-label">title</span>
+                        <input class="input" @bind="editTitle" @bind:event="oninput" maxlength="140" />
+                    </label>
+                    <label class="field">
+                        <span class="field-label">body // markdown</span>
+                        <textarea class="input" rows="8" @bind="editBody" @bind:event="oninput"></textarea>
+                    </label>
+                    <label class="field">
+                        <span class="field-label">tags // comma separated</span>
+                        <input class="input" @bind="editTags" @bind:event="oninput" placeholder="art, dither, y2k" />
+                    </label>
+                    <div class="row gap-sm">
+                        <button class="btn btn-primary" type="button" @onclick="SaveEditAsync" disabled="@(string.IsNullOrWhiteSpace(editTitle) || string.IsNullOrWhiteSpace(editBody))">save</button>
+                        <button class="btn" type="button" @onclick="() => editing = false">cancel</button>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <h1 class="display post-full-title">@post.Title</h1>
+                <MarkdownView Text="@post.Body" Class="post-full-body" />
+                <div class="tag-row">
+                    @foreach (TagDto tag in post.Tags)
+                    {
+                        <a class="tag-chip" href="/?tag=@tag.Id">#@tag.Name</a>
+                    }
+                </div>
+            }
+
+            <div class="post-full-actions">
+                <LikeButton Liked="@IsLiked" Count="@post.LikeCount" Busy="@busy" OnToggle="ToggleLikeAsync" />
+                <span class="post-card-stat"><Icon Name="comment" Size="16" /> @comments.Count</span>
+                <span class="spacer"></span>
+                @if (userId == post.UserId && !editing)
+                {
+                    <button class="btn btn-sm btn-ghost" type="button" @onclick="StartEdit"><Icon Name="edit" Size="14" /> edit</button>
+                }
+                @if (userId == post.UserId || isModerator)
+                {
+                    <ConfirmButton Question="delete this post?" OnConfirm="DeletePostAsync">
+                        <Icon Name="trash" Size="14" /> @(userId == post.UserId ? "delete" : "mod delete")
+                    </ConfirmButton>
+                }
+            </div>
+        </article>
+
+        <section class="comments" id="comments">
+            <h2 class="section-title"><span class="hud-label">THREAD</span> comments <span class="count">@comments.Count</span></h2>
+
+            <AuthorizeView>
+                <Authorized>
+                    <div class="comment-form comment-form-main">
+                        <textarea class="input" rows="3" placeholder="add to the thread. markdown works." @bind="newComment" @bind:event="oninput"></textarea>
+                        <button class="btn btn-primary" type="button" @onclick="AddCommentAsync" disabled="@string.IsNullOrWhiteSpace(newComment)">
+                            <Icon Name="send" Size="14" /> comment
+                        </button>
+                    </div>
+                </Authorized>
+                <NotAuthorized>
+                    <p class="muted"><a href="/login">log in</a> to join the thread.</p>
+                </NotAuthorized>
+            </AuthorizeView>
+
+            @foreach (CommentDto comment in comments.Where(c => c.ParentCommentId is null))
+            {
+                <CommentThread @key="comment.Id" Comment="comment" AllComments="comments" Cards="cards"
+                               CurrentUserId="userId" IsModerator="isModerator" OnChanged="ReloadCommentsAsync" />
+            }
+        </section>
+    }
+</div>
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    [CascadingParameter] public Task<AuthenticationState> State { get; set; } = default!;
+
+    private PostDto? post;
+    private List<CommentDto> comments = new();
+    private Dictionary<int, ProfileCardDto> cards = new();
+    private int? userId;
+    private bool isModerator;
+    private bool loading = true;
+    private bool busy;
+    private bool editing;
+    private string editTitle = "";
+    private string editBody = "";
+    private string editTags = "";
+    private string newComment = "";
+    private string? error;
+
+    private bool IsLiked => userId is not null && post is not null && post.LikedByUserIds.Contains(userId.Value);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        loading = true;
+        error = null;
+        try
+        {
+            ClaimsPrincipal user = (await State).User;
+            userId = user.GetUserId();
+            isModerator = user.IsModerator();
+
+            post = await PostService.GetPostAsync(Id, includeComments: true);
+            comments = post.Comments ?? new();
+            await LoadCardsAsync();
+        }
+        catch (Exception e)
+        {
+            error = e.Message;
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task LoadCardsAsync()
+    {
+        List<int> ids = comments.Select(c => c.UserId).Append(post!.UserId).ToList();
+        await CardCache.EnsureAsync(ids);
+        cards = ids.Distinct()
+            .Select(id => CardCache.Get(id))
+            .Where(c => c is not null)
+            .ToDictionary(c => c!.UserId, c => c!);
+    }
+
+    private async Task ReloadCommentsAsync()
+    {
+        try
+        {
+            comments = await CommentService.GetCommentsForPostAsync(Id);
+            post!.CommentCount = comments.Count;
+            await LoadCardsAsync();
+        }
+        catch (Exception e)
+        {
+            error = e.Message;
+        }
+    }
+
+    private async Task AddCommentAsync()
+    {
+        error = null;
+        try
+        {
+            await CommentService.AddCommentAsync(new CreateCommentDto
+            {
+                Body = newComment,
+                UserId = userId!.Value,
+                PostId = Id
+            });
+            newComment = "";
+            await ReloadCommentsAsync();
+        }
+        catch (Exception e)
+        {
+            error = e.Message;
+        }
+    }
+
+    private void StartEdit()
+    {
+        editTitle = post!.Title;
+        editBody = post.Body;
+        editTags = string.Join(", ", post.Tags.Select(t => t.Name));
+        editing = true;
+    }
+
+    private async Task SaveEditAsync()
+    {
+        error = null;
+        try
+        {
+            await PostService.UpdatePostAsync(Id, new UpdatePostDto { Title = editTitle, Body = editBody });
+
+            List<string> wanted = ParseTags(editTags);
+            foreach (TagDto tag in post!.Tags.Where(t => !wanted.Contains(t.Name.ToLower())))
+            {
+                await PostService.RemoveTagAsync(Id, tag.Id);
+            }
+
+            foreach (string name in wanted.Where(n => post.Tags.All(t => t.Name.ToLower() != n)))
+            {
+                TagDto tag = await TagService.GetOrCreateTagAsync(name);
+                await PostService.AddTagAsync(Id, tag.Id);
+            }
+
+            post = await PostService.GetPostAsync(Id, includeComments: true);
+            comments = post.Comments ?? new();
+            editing = false;
+        }
+        catch (Exception e)
+        {
+            error = e.Message;
+        }
+    }
+
+    private async Task DeletePostAsync()
+    {
+        error = null;
+        try
+        {
+            await PostService.DeletePostAsync(Id);
+            NavMgr.NavigateTo("/");
+        }
+        catch (Exception e)
+        {
+            error = e.Message;
+        }
+    }
+
+    private async Task ToggleLikeAsync()
+    {
+        if (userId is null)
+        {
+            NavMgr.NavigateTo("/login");
+            return;
+        }
+
+        busy = true;
+        error = null;
+        try
+        {
+            if (IsLiked)
+            {
+                await PostService.UnlikeAsync(Id, userId.Value);
+                post!.LikedByUserIds.Remove(userId.Value);
+                post.LikeCount--;
+            }
+            else
+            {
+                await PostService.LikeAsync(Id, userId.Value);
+                post!.LikedByUserIds.Add(userId.Value);
+                post.LikeCount++;
+            }
+        }
+        catch (Exception e)
+        {
+            error = e.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    public static List<string> ParseTags(string text)
+    {
+        return text.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(t => t.TrimStart('#').ToLower())
+            .Where(t => t.Length > 0 && t.Length <= 30)
+            .Distinct()
+            .Take(8)
+            .ToList();
+    }
+}

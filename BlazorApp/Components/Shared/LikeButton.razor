@@ -1,0 +1,12 @@
+<button class="like-button @(Liked ? "is-liked" : "")" type="button" @onclick="OnToggle" disabled="@Busy"
+        aria-pressed="@Liked" title="@(Liked ? "unlike" : "like")">
+    <Icon Name="@(Liked ? "heart-fill" : "heart")" Size="16" />
+    <span>@Count</span>
+</button>
+
+@code {
+    [Parameter] public bool Liked { get; set; }
+    [Parameter] public int Count { get; set; }
+    [Parameter] public bool Busy { get; set; }
+    [Parameter] public EventCallback OnToggle { get; set; }
+}

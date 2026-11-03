@@ -1,0 +1,158 @@
+@page "/"
+@inject IPostService PostService
+@inject ITagService TagService
+@inject ProfileCardCache Cards
+@inject NavigationManager NavMgr
+
+<PageTitle>feed // cybernet</PageTitle>
+
+<div class="container feed-layout">
+    <section class="feed-hero">
+        <span class="hud-label">CN.FEED // @(View == "following" ? "FOLLOWING" : "GLOBAL") // @posts.Count SIGNALS</span>
+        <AuthorizeView>
+            <Authorized>
+                <h1 class="display feed-title">hello, @context.User.Identity?.Name</h1>
+                <p class="muted">here is what the network is transmitting.</p>
+            </Authorized>
+            <NotAuthorized>
+                <h1 class="display feed-title feed-title-xl">a network of profiles <em>you</em> control</h1>
+                <p class="muted">move every module, recolor everything, write your own css. then say something.</p>
+                <div class="row gap">
+                    <a class="btn btn-primary" href="/register"><StarGlyph Size="12" /> claim your node</a>
+                    <a class="btn" href="/u/nyx">see a profile</a>
+                </div>
+            </NotAuthorized>
+        </AuthorizeView>
+    </section>
+
+    <div class="feed-controls">
+        <div class="segmented" role="tablist">
+            <button class="@(View != "following" ? "is-active" : "")" type="button" @onclick='() => Go(view: "all")'>global</button>
+            <button class="@(View == "following" ? "is-active" : "")" type="button" @onclick='() => Go(view: "following")'>following</button>
+        </div>
+        <label class="select-wrap">
+            <span class="hud-label">sort</span>
+            <select value="@(Sort ?? "newest")" @onchange="e => Go(sort: e.Value?.ToString())">
+                <option value="newest">newest</option>
+                <option value="oldest">oldest</option>
+                <option value="likes">most liked</option>
+            </select>
+        </label>
+    </div>
+
+    <div class="tag-row">
+        <a class="tag-chip @(Tag is null ? "is-active" : "")" href="@TagHref(null)">#all</a>
+        @foreach (TagDto tag in tags)
+        {
+            <a class="tag-chip @(Tag == tag.Id ? "is-active" : "")" href="@TagHref(tag.Id)">#@tag.Name</a>
+        }
+    </div>
+
+    <ErrorBanner Message="@error" />
+
+    @if (loading)
+    {
+        <Loading />
+    }
+    else if (needsLogin)
+    {
+        <div class="empty-state">
+            <p>log in to see posts from people you follow.</p>
+            <a class="btn btn-primary" href="/login">log in</a>
+        </div>
+    }
+    else if (posts.Count == 0)
+    {
+        <div class="empty-state">
+            <StarGlyph Size="28" />
+            <p>no signals here yet.</p>
+            <AuthorizeView>
+                <a class="btn btn-primary" href="/posts/new">transmit the first one</a>
+            </AuthorizeView>
+        </div>
+    }
+    else
+    {
+        <div class="post-list">
+            @foreach (PostDto post in posts)
+            {
+                <PostCard @key="post.Id" Post="post" Card="@Cards.Get(post.UserId)" />
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [SupplyParameterFromQuery] public int? Tag { get; set; }
+    [SupplyParameterFromQuery] public string? Sort { get; set; }
+    [SupplyParameterFromQuery] public string? View { get; set; }
+
+    [CascadingParameter] public Task<AuthenticationState> State { get; set; } = default!;
+
+    private List<PostDto> posts = new();
+    private List<TagDto> tags = new();
+    private bool loading = true;
+    private bool needsLogin;
+    private string? error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            tags = await TagService.GetTagsAsync();
+        }
+        catch (Exception e)
+        {
+            error = e.Message;
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        loading = true;
+        needsLogin = false;
+        error = null;
+        try
+        {
+            int? userId = (await State).User.GetUserId();
+            if (View == "following" && userId is null)
+            {
+                needsLogin = true;
+                posts = new();
+                return;
+            }
+
+            posts = await PostService.GetPostsAsync(new PostQuery
+            {
+                OrderBy = Sort,
+                TagId = Tag,
+                FollowedBy = View == "following" ? userId : null
+            });
+            await Cards.EnsureAsync(posts.Select(p => p.UserId));
+        }
+        catch (Exception e)
+        {
+            error = e.Message;
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private void Go(string? view = null, string? sort = null)
+    {
+        Dictionary<string, object?> query = new()
+        {
+            ["view"] = view ?? View,
+            ["sort"] = sort ?? Sort,
+            ["tag"] = Tag
+        };
+        NavMgr.NavigateTo(NavMgr.GetUriWithQueryParameters(query));
+    }
+
+    private string TagHref(int? tagId)
+    {
+        return NavMgr.GetUriWithQueryParameter("tag", tagId);
+    }
+}

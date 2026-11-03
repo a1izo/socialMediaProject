@@ -1,0 +1,8 @@
+<div class="loading" role="status">
+    <StarGlyph Size="18" Class="loading-star" />
+    <span>@Label<span class="loading-dots"></span></span>
+</div>
+
+@code {
+    [Parameter] public string Label { get; set; } = "receiving signal";
+}

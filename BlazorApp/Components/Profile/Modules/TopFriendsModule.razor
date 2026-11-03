@@ -1,0 +1,49 @@
+@inherits ProfileModuleBase
+@inject ProfileCardCache CardCache
+
+@if (friends is null)
+{
+    <Loading />
+}
+else if (friends.Count == 0)
+{
+    <p class="module-empty">@(Editing ? "no friends picked yet. choose from people you follow in the module settings." : "")</p>
+}
+else
+{
+    <ol class="friend-grid">
+        @foreach (ProfileCardDto friend in friends)
+        {
+            <li @key="friend.UserId">
+                <a class="friend" href="/u/@friend.UserName">
+                    <Avatar Url="@friend.AvatarUrl" Name="@friend.DisplayName" Shape="@friend.Theme.AvatarShape" Size="64" />
+                    <span class="friend-name">@friend.DisplayName</span>
+                </a>
+            </li>
+        }
+    </ol>
+}
+
+@code {
+    private List<ProfileCardDto>? friends;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!ShouldReload())
+        {
+            return;
+        }
+
+        List<int> ids = (Settings.UserIds ?? new()).Take(8).ToList();
+        try
+        {
+            await CardCache.EnsureAsync(ids);
+        }
+        catch (Exception)
+        {
+            // show whatever is cached
+        }
+
+        friends = ids.Select(id => CardCache.Get(id)).Where(c => c is not null).Select(c => c!).ToList();
+    }
+}

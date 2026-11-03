@@ -1,0 +1,32 @@
+@* Avatar + display name in the author's accent color. Hovering (or focusing) shows their themed card. *@
+<span class="user-chip @(Card is not null ? "has-card" : "")">
+    <a class="user-chip-link" href="/u/@UserName">
+        @if (ShowAvatar)
+        {
+            <Avatar Url="@Card?.AvatarUrl" Name="@(Card?.DisplayName ?? UserName)" Shape="@Card?.Theme.AvatarShape" Size="@AvatarSize" />
+        }
+        <span class="user-chip-text">
+            <span class="user-chip-name" style="@NameStyle">@(Card?.DisplayName ?? UserName)</span>
+            @if (ShowHandle)
+            {
+                <span class="user-chip-handle">@@@UserName</span>
+            }
+        </span>
+    </a>
+    @if (Card is not null)
+    {
+        <span class="user-chip-popover">
+            <ProfileHoverCard Card="Card" />
+        </span>
+    }
+</span>
+
+@code {
+    [Parameter, EditorRequired] public string UserName { get; set; } = "";
+    [Parameter] public ProfileCardDto? Card { get; set; }
+    [Parameter] public bool ShowAvatar { get; set; } = true;
+    [Parameter] public bool ShowHandle { get; set; } = true;
+    [Parameter] public int AvatarSize { get; set; } = 32;
+
+    private string NameStyle => Card is null ? "" : $"--chip-accent:{CssValues.Color(Card.Theme.Accent, "var(--accent)")}";
+}

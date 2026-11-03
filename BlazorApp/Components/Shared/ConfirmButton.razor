@@ -1,0 +1,29 @@
+@* A button that asks "sure?" before running a destructive action. *@
+@if (confirming)
+{
+    <span class="confirm">
+        <span class="confirm-label">@Question</span>
+        <button type="button" class="btn btn-sm btn-danger" @onclick="ConfirmAsync">yes</button>
+        <button type="button" class="btn btn-sm" @onclick="() => confirming = false">no</button>
+    </span>
+}
+else
+{
+    <button type="button" class="@Class" title="@Title" @onclick="() => confirming = true">@ChildContent</button>
+}
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public string Question { get; set; } = "sure?";
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public string Class { get; set; } = "btn btn-sm btn-ghost";
+    [Parameter] public EventCallback OnConfirm { get; set; }
+
+    private bool confirming;
+
+    private async Task ConfirmAsync()
+    {
+        confirming = false;
+        await OnConfirm.InvokeAsync();
+    }
+}

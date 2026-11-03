@@ -106,6 +106,12 @@ public class CommentFileRepository : ICommentRepository
         await JsonFileHelper.SaveAsync(commentLikesFilePath, commentLikes);
     }
 
+    public IQueryable<int> GetLikerIds(int commentId)
+    {
+        List<CommentLike> commentLikes = JsonFileHelper.Load<CommentLike>(commentLikesFilePath);
+        return commentLikes.Where(cl => cl.CommentId == commentId).Select(cl => cl.UserId).AsQueryable();
+    }
+
     public async Task<int> GetLikeCountAsync(int commentId)
     {
         List<CommentLike> commentLikes = await JsonFileHelper.LoadAsync<CommentLike>(commentLikesFilePath);

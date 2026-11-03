@@ -1,0 +1,20 @@
+@* A row of buttons for picking one value out of a few. *@
+<div class="ed-field">
+    @if (!string.IsNullOrEmpty(Label))
+    {
+        <span class="ed-label">@Label</span>
+    }
+    <div class="ed-choices">
+        @foreach ((string value, string label) in Options)
+        {
+            <button type="button" class="ed-choice @(Value == value ? "is-active" : "")" @onclick="() => ValueChanged.InvokeAsync(value)">@label</button>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Label { get; set; } = "";
+    [Parameter] public string? Value { get; set; }
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+    [Parameter] public (string Value, string Label)[] Options { get; set; } = Array.Empty<(string, string)>();
+}

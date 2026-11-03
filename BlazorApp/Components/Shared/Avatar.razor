@@ -1,0 +1,22 @@
+@inject ApiConfig Api
+
+<span class="avatar shape-@CssValues.OneOf(Shape, "circle", "circle", "square", "hex", "star") @Class" style="--avatar-size:@(Size)px">
+    @if (!string.IsNullOrWhiteSpace(Url))
+    {
+        <img src="@Api.Resolve(Url)" alt="" loading="lazy" />
+    }
+    else
+    {
+        <span class="avatar-initial">@Initial</span>
+    }
+</span>
+
+@code {
+    [Parameter] public string? Url { get; set; }
+    [Parameter] public string? Name { get; set; }
+    [Parameter] public string? Shape { get; set; } = "circle";
+    [Parameter] public int Size { get; set; } = 36;
+    [Parameter] public string? Class { get; set; }
+
+    private string Initial => string.IsNullOrWhiteSpace(Name) ? "✦" : Name.Trim()[..1].ToUpper();
+}

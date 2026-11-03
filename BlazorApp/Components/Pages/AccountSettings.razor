@@ -1,0 +1,131 @@
+@page "/settings"
+@attribute [Authorize]
+@using BlazorApp.Auth
+@inject IUserService UserService
+@inject AuthenticationStateProvider AuthProvider
+@inject NavigationManager NavMgr
+
+<PageTitle>account // cybernet</PageTitle>
+
+<div class="container narrow">
+    <section class="hud-frame">
+        <span class="hud-label">ACCOUNT // @userName.ToUpper()</span>
+        <h1 class="display">account</h1>
+        <p class="muted">this is your login info. to change how your profile looks, <a href="/u/@userName?edit=true">open the profile editor</a>.</p>
+
+        @if (loading)
+        {
+            <Loading />
+        }
+        else
+        {
+            <form class="form" @onsubmit="SaveAsync" @onsubmit:preventDefault>
+                <label class="field">
+                    <span class="field-label">user name</span>
+                    <input class="input" @bind="userName" maxlength="30" />
+                </label>
+                <label class="field">
+                    <span class="field-label">email</span>
+                    <input class="input" type="email" @bind="email" />
+                </label>
+                <label class="field">
+                    <span class="field-label">phone // optional</span>
+                    <input class="input" type="tel" @bind="phone" />
+                </label>
+                <label class="field">
+                    <span class="field-label">new password // leave empty to keep</span>
+                    <input class="input" type="password" @bind="password" autocomplete="new-password" />
+                </label>
+
+                <ErrorBanner Message="@error" />
+                @if (saved)
+                {
+                    <p class="success-note"><Icon Name="check" Size="14" /> saved</p>
+                }
+
+                <div class="row gap">
+                    <button class="btn btn-primary" type="submit">save</button>
+                </div>
+            </form>
+
+            <div class="danger-zone">
+                <span class="hud-label">DANGER ZONE</span>
+                <p class="muted small">deleting your account removes your profile. this cannot be undone.</p>
+                <ConfirmButton Class="btn btn-danger" Question="really delete your account?" OnConfirm="DeleteAsync">
+                    <Icon Name="trash" Size="14" /> delete account
+                </ConfirmButton>
+            </div>
+        }
+    </section>
+</div>
+
+@code {
+    [CascadingParameter] public Task<AuthenticationState> State { get; set; } = default!;
+
+    private int userId;
+    private string userName = "";
+    private string email = "";
+    private string phone = "";
+    private string password = "";
+    private bool loading = true;
+    private bool saved;
+    private string? error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            userId = (await State).User.GetUserId()!.Value;
+            UserDto user = await UserService.GetUserAsync(userId);
+            userName = user.UserName;
+            email = user.Email;
+            phone = user.PhoneNumber ?? "";
+        }
+        catch (Exception e)
+        {
+            error = e.Message;
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        error = null;
+        saved = false;
+        try
+        {
+            await UserService.UpdateUserAsync(userId, new UpdateUserDto
+            {
+                UserName = userName,
+                Email = email,
+                PhoneNumber = phone,
+                Password = string.IsNullOrWhiteSpace(password) ? null : password
+            });
+            UserDto updated = await UserService.GetUserAsync(userId);
+            await ((SimpleAuthProvider)AuthProvider).StoreUserAsync(updated);
+            password = "";
+            saved = true;
+        }
+        catch (Exception e)
+        {
+            error = e.Message;
+        }
+    }
+
+    private async Task DeleteAsync()
+    {
+        try
+        {
+            await UserService.DeleteUserAsync(userId);
+            await ((SimpleAuthProvider)AuthProvider).Logout();
+            NavMgr.NavigateTo("/");
+        }
+        catch (Exception e)
+        {
+            error = e.Message;
+        }
+    }
+}

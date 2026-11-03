@@ -1,0 +1,70 @@
+@page "/login"
+@using BlazorApp.Auth
+@inject AuthenticationStateProvider AuthProvider
+@inject NavigationManager navMgr
+
+<PageTitle>log in // cybernet</PageTitle>
+
+<div class="container narrow auth-page">
+    <AuthorizeView>
+        <NotAuthorized>
+            <section class="hud-frame auth-card">
+                <span class="hud-label">AUTH // HANDSHAKE</span>
+                <h1 class="display">log in</h1>
+                <form class="form" @onsubmit="LoginAsync" @onsubmit:preventDefault>
+                    <label class="field">
+                        <span class="field-label">user name</span>
+                        <input class="input" type="text" @bind="userName" autocomplete="username" />
+                    </label>
+                    <label class="field">
+                        <span class="field-label">password</span>
+                        <input class="input" type="password" @bind="password" autocomplete="current-password" />
+                    </label>
+                    @if (!string.IsNullOrEmpty(errorLabel))
+                    {
+                        <ErrorBanner Message="@errorLabel" />
+                    }
+                    <button class="btn btn-primary btn-lg" type="submit" disabled="@busy">
+                        <Icon Name="login" Size="16" /> log in
+                    </button>
+                </form>
+                <p class="muted small">new here? <a href="/register">claim your node</a>. demo accounts: nyx, paperghost, cobalt_exe, hana_dots, k1ra, moss.</p>
+            </section>
+        </NotAuthorized>
+        <Authorized>
+            <section class="hud-frame auth-card">
+                <span class="hud-label">AUTH // OK</span>
+                <h1 class="display">hello, @context.User.Identity?.Name</h1>
+                <p class="muted">you are already logged in.</p>
+                <a class="btn btn-primary" href="/">go to the feed</a>
+            </section>
+        </Authorized>
+    </AuthorizeView>
+</div>
+
+@code {
+    private string userName = "";
+    private string password = "";
+    private string errorLabel = "";
+    private bool busy;
+
+    private async Task LoginAsync()
+    {
+        errorLabel = "";
+        busy = true;
+        try
+        {
+            await ((SimpleAuthProvider)AuthProvider).LoginAsync(userName, password);
+            navMgr.NavigateTo("/");
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            errorLabel = e.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+}

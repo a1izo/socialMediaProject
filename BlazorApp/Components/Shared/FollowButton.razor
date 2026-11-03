@@ -1,0 +1,55 @@
+@inject IUserService UserService
+@inject NavigationManager NavMgr
+
+@if (CurrentUserId != TargetUserId)
+{
+    <button type="button" class="btn @(IsFollowing ? "" : "btn-primary") @Class" @onclick="ToggleAsync" disabled="@busy">
+        @if (IsFollowing)
+        {
+            <Icon Name="check" Size="14" /> <span>following</span>
+        }
+        else
+        {
+            <Icon Name="plus" Size="14" /> <span>follow</span>
+        }
+    </button>
+}
+
+@code {
+    [Parameter, EditorRequired] public int TargetUserId { get; set; }
+    [Parameter] public int? CurrentUserId { get; set; }
+    [Parameter] public bool IsFollowing { get; set; }
+    [Parameter] public EventCallback<bool> IsFollowingChanged { get; set; }
+    [Parameter] public string? Class { get; set; }
+
+    private bool busy;
+
+    private async Task ToggleAsync()
+    {
+        if (CurrentUserId is null)
+        {
+            NavMgr.NavigateTo("/login");
+            return;
+        }
+
+        busy = true;
+        try
+        {
+            if (IsFollowing)
+            {
+                await UserService.UnfollowAsync(CurrentUserId.Value, TargetUserId);
+            }
+            else
+            {
+                await UserService.FollowAsync(CurrentUserId.Value, TargetUserId);
+            }
+
+            IsFollowing = !IsFollowing;
+            await IsFollowingChanged.InvokeAsync(IsFollowing);
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+}

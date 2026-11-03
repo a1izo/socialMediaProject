@@ -1,0 +1,19 @@
+@inherits ProfileModuleBase
+
+<ul class="link-list">
+    @foreach (LinkItem link in (Settings.Links ?? new()).Where(l => IsSafe(l.Url)))
+    {
+        <li>
+            <a class="link-item" href="@link.Url" target="_blank" rel="noopener noreferrer nofollow">
+                <Icon Name="@link.Icon" Size="16" />
+                <span class="link-label">@link.Label</span>
+                <Icon Name="arrow-right" Size="14" Class="link-arrow" />
+            </a>
+        </li>
+    }
+</ul>
+
+@code {
+    private static bool IsSafe(string url) =>
+        url.StartsWith("https://", StringComparison.OrdinalIgnoreCase) || url.StartsWith("http://", StringComparison.OrdinalIgnoreCase);
+}

@@ -1,0 +1,60 @@
+@* The editing drawer. It works directly on the working copy of the profile; every change
+   calls OnChanged so the page re-renders and the preview updates live. *@
+<aside class="editor-drawer" aria-label="profile editor">
+    <header class="editor-drawer-head">
+        <span class="hud-label">@Title</span>
+        <button type="button" class="icon-btn" title="close panel" @onclick="OnClose"><Icon Name="x" /></button>
+    </header>
+    <div class="editor-drawer-body">
+        @switch (Panel)
+        {
+            case "theme":
+                <ThemePanel Theme="Profile.Theme" OnChanged="OnChanged" OnPresetApplied="ApplyPreset" />
+                break;
+            case "header":
+                <HeaderPanel Profile="Profile" OnChanged="OnChanged" />
+                break;
+            case "add":
+                <AddModulePanel OnAdd="OnAddModule" />
+                break;
+            case "css":
+                <CssPanel Profile="Profile" OnChanged="OnChanged" />
+                break;
+            case "module" when SelectedModule is not null:
+                <ModuleInspector @key="SelectedModule" Module="SelectedModule" Profile="Profile" CurrentUserId="CurrentUserId"
+                                 OnChanged="OnChanged" OnDelete="OnDeleteModule" OnDuplicate="OnDuplicateModule" />
+                break;
+            default:
+                <p class="muted small">pick a module's gear icon to edit it.</p>
+                break;
+        }
+    </div>
+</aside>
+
+@code {
+    [Parameter, EditorRequired] public ProfileDto Profile { get; set; } = default!;
+    [Parameter] public string? Panel { get; set; }
+    [Parameter] public ProfileModuleDto? SelectedModule { get; set; }
+    [Parameter] public int? CurrentUserId { get; set; }
+    [Parameter] public EventCallback OnChanged { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback<string> OnAddModule { get; set; }
+    [Parameter] public EventCallback OnDeleteModule { get; set; }
+    [Parameter] public EventCallback OnDuplicateModule { get; set; }
+
+    private string Title => Panel switch
+    {
+        "theme" => "THEME // GLOBAL STYLE",
+        "header" => "HEADER // IDENTITY",
+        "add" => "MODULES // ADD",
+        "css" => "ADVANCED // CUSTOM CSS",
+        "module" => $"MODULE // {ModuleCatalog.Get(SelectedModule?.Type ?? "").Label.ToUpper()}",
+        _ => "EDITOR"
+    };
+
+    private async Task ApplyPreset(string name)
+    {
+        Profile.Theme = ThemePresets.Create(name);
+        await OnChanged.InvokeAsync();
+    }
+}

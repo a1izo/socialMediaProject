@@ -1,0 +1,181 @@
+@inject ICommentService CommentService
+@inject NavigationManager NavMgr
+
+@* One comment and, recursively, all of its replies. *@
+<div class="comment" id="comment-@Comment.Id" style="--depth:@Depth">
+    <div class="comment-head">
+        <UserChip UserName="@Comment.AuthorUserName" Card="@CardFor(Comment.UserId)" AvatarSize="24" ShowHandle="false" />
+        <span class="comment-time" title="@TimeFormat.Stamp(Comment.CreatedDate)">@TimeFormat.Ago(Comment.CreatedDate)</span>
+    </div>
+
+    @if (editing)
+    {
+        <div class="comment-form">
+            <textarea class="input" rows="3" @bind="editBody" @bind:event="oninput"></textarea>
+            <div class="row gap-sm">
+                <button class="btn btn-sm btn-primary" type="button" @onclick="SaveEditAsync" disabled="@string.IsNullOrWhiteSpace(editBody)">save</button>
+                <button class="btn btn-sm" type="button" @onclick="() => editing = false">cancel</button>
+            </div>
+        </div>
+    }
+    else
+    {
+        <MarkdownView Text="@Comment.Body" Class="comment-body" />
+    }
+
+    <div class="comment-actions">
+        <LikeButton Liked="@IsLiked" Count="@Comment.LikeCount" Busy="@busy" OnToggle="ToggleLikeAsync" />
+        @if (CurrentUserId is not null)
+        {
+            <button class="btn btn-sm btn-ghost" type="button" @onclick="() => replying = !replying"><Icon Name="reply" Size="14" /> reply</button>
+        }
+        @if (CurrentUserId == Comment.UserId)
+        {
+            <button class="btn btn-sm btn-ghost" type="button" @onclick="StartEdit"><Icon Name="edit" Size="14" /> edit</button>
+        }
+        @if (CurrentUserId == Comment.UserId || IsModerator)
+        {
+            <ConfirmButton Question="delete comment and replies?" OnConfirm="DeleteAsync">
+                <Icon Name="trash" Size="14" /> @(CurrentUserId == Comment.UserId ? "delete" : "mod delete")
+            </ConfirmButton>
+        }
+    </div>
+
+    @if (replying)
+    {
+        <div class="comment-form">
+            <textarea class="input" rows="2" placeholder="reply to @Comment.AuthorUserName" @bind="replyBody" @bind:event="oninput"></textarea>
+            <div class="row gap-sm">
+                <button class="btn btn-sm btn-primary" type="button" @onclick="ReplyAsync" disabled="@string.IsNullOrWhiteSpace(replyBody)">reply</button>
+                <button class="btn btn-sm" type="button" @onclick="() => replying = false">cancel</button>
+            </div>
+        </div>
+    }
+
+    <ErrorBanner Message="@error" />
+
+    @{ List<CommentDto> replies = AllComments.Where(c => c.ParentCommentId == Comment.Id).OrderBy(c => c.CreatedDate).ToList(); }
+    @if (replies.Count > 0)
+    {
+        <div class="comment-replies">
+            @foreach (CommentDto reply in replies)
+            {
+                <CommentThread @key="reply.Id" Comment="reply" AllComments="AllComments" Cards="Cards" Depth="Depth + 1"
+                               CurrentUserId="CurrentUserId" IsModerator="IsModerator" OnChanged="OnChanged" />
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public CommentDto Comment { get; set; } = default!;
+    [Parameter, EditorRequired] public List<CommentDto> AllComments { get; set; } = new();
+    [Parameter] public Dictionary<int, ProfileCardDto> Cards { get; set; } = new();
+    [Parameter] public int Depth { get; set; }
+    [Parameter] public int? CurrentUserId { get; set; }
+    [Parameter] public bool IsModerator { get; set; }
+    [Parameter] public EventCallback OnChanged { get; set; }
+
+    private bool editing;
+    private bool replying;
+    private bool busy;
+    private string editBody = "";
+    private string replyBody = "";
+    private string? error;
+
+    private bool IsLiked => CurrentUserId is not null && Comment.LikedByUserIds.Contains(CurrentUserId.Value);
+
+    private ProfileCardDto? CardFor(int userId) => Cards.GetValueOrDefault(userId);
+
+    private void StartEdit()
+    {
+        editBody = Comment.Body;
+        editing = true;
+    }
+
+    private async Task SaveEditAsync()
+    {
+        error = null;
+        try
+        {
+            await CommentService.UpdateCommentAsync(Comment.Id, new UpdateCommentDto { Body = editBody });
+            Comment.Body = editBody;
+            editing = false;
+        }
+        catch (Exception e)
+        {
+            error = e.Message;
+        }
+    }
+
+    private async Task ReplyAsync()
+    {
+        error = null;
+        try
+        {
+            await CommentService.AddCommentAsync(new CreateCommentDto
+            {
+                Body = replyBody,
+                UserId = CurrentUserId!.Value,
+                PostId = Comment.PostId,
+                ParentCommentId = Comment.Id
+            });
+            replyBody = "";
+            replying = false;
+            await OnChanged.InvokeAsync();
+        }
+        catch (Exception e)
+        {
+            error = e.Message;
+        }
+    }
+
+    private async Task DeleteAsync()
+    {
+        error = null;
+        try
+        {
+            await CommentService.DeleteCommentAsync(Comment.Id);
+            await OnChanged.InvokeAsync();
+        }
+        catch (Exception e)
+        {
+            error = e.Message;
+        }
+    }
+
+    private async Task ToggleLikeAsync()
+    {
+        if (CurrentUserId is null)
+        {
+            NavMgr.NavigateTo("/login");
+            return;
+        }
+
+        busy = true;
+        error = null;
+        try
+        {
+            if (IsLiked)
+            {
+                await CommentService.UnlikeAsync(Comment.Id, CurrentUserId.Value);
+                Comment.LikedByUserIds.Remove(CurrentUserId.Value);
+                Comment.LikeCount--;
+            }
+            else
+            {
+                await CommentService.LikeAsync(Comment.Id, CurrentUserId.Value);
+                Comment.LikedByUserIds.Add(CurrentUserId.Value);
+                Comment.LikeCount++;
+            }
+        }
+        catch (Exception e)
+        {
+            error = e.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+}

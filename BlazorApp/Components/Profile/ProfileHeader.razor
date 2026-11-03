@@ -1,0 +1,46 @@
+@inject ApiConfig Api
+
+<header class="profile-header">
+    <div class="banner" style="@BannerStyle">
+        @if (string.IsNullOrWhiteSpace(Profile.BannerUrl))
+        {
+            <div class="banner-generated" aria-hidden="true"><StarGlyph Size="160" /></div>
+        }
+        <span class="hud-label banner-hud">NODE.@Profile.UserId.ToString("0000") // SINCE @Profile.CreatedDate.ToString("yyyy.MM.dd")</span>
+    </div>
+
+    <div class="profile-id">
+        <Avatar Url="@Profile.AvatarUrl" Name="@Profile.DisplayName" Shape="@Profile.Theme.AvatarShape" Size="132" Class="profile-avatar" />
+        <div class="profile-id-text">
+            <h1 class="profile-name" data-text="@Profile.DisplayName">@Profile.DisplayName</h1>
+            <div class="profile-handle">
+                <span>@@@Profile.UserName</span>
+                @if (Profile.IsModerator)
+                {
+                    <span class="badge"><Icon Name="shield" Size="12" /> moderator</span>
+                }
+            </div>
+            @if (!string.IsNullOrWhiteSpace(Profile.Tagline))
+            {
+                <p class="profile-tagline">@Profile.Tagline</p>
+            }
+            <div class="profile-links">
+                <a href="/u/@Profile.UserName/followers"><b>@Profile.Stats.FollowerCount</b> followers</a>
+                <a href="/u/@Profile.UserName/following"><b>@Profile.Stats.FollowingCount</b> following</a>
+                <span><b>@Profile.Stats.PostCount</b> posts</span>
+            </div>
+        </div>
+        <div class="profile-actions">
+            @ChildContent
+        </div>
+    </div>
+</header>
+
+@code {
+    [Parameter, EditorRequired] public ProfileDto Profile { get; set; } = default!;
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private string BannerStyle => CssValues.IsUrl(Profile.BannerUrl)
+        ? $"background-image:url(\"{Api.Resolve(Profile.BannerUrl)}\");"
+        : "";
+}

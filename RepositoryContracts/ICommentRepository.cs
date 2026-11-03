@@ -14,6 +14,7 @@ public interface ICommentRepository
     Task LikeAsync(int commentId, int userId);
     Task UnlikeAsync(int commentId, int userId);
     Task<int> GetLikeCountAsync(int commentId);
+    IQueryable<int> GetLikerIds(int commentId);
 
     //replies
     IQueryable<Comment> GetReplies(int commentId);

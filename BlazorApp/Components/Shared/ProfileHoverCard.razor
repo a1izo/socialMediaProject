@@ -1,0 +1,29 @@
+@inject ApiConfig Api
+
+@* A mini version of someone's profile, wearing their own theme. *@
+<div class="hover-card cn-themed @ThemeCss.Classes(Card.Theme)" style="@ThemeCss.Variables(Card.Theme) @ThemeCss.Background(Card.Theme, Api)">
+    <FontLinks Urls="@ThemeCss.FontUrls(Card.Theme.DisplayFont)" />
+    <div class="hover-card-banner" style="@BannerStyle"></div>
+    <div class="hover-card-body">
+        <Avatar Url="@Card.AvatarUrl" Name="@Card.DisplayName" Shape="@Card.Theme.AvatarShape" Size="52" Class="hover-card-avatar" />
+        <div class="hover-card-name">@Card.DisplayName</div>
+        <div class="hover-card-handle">@@@Card.UserName @(Card.IsModerator ? " // mod" : "")</div>
+        @if (!string.IsNullOrWhiteSpace(Card.Tagline))
+        {
+            <p class="hover-card-tagline">@Card.Tagline</p>
+        }
+        <div class="hover-card-stats">
+            <span><b>@Card.Stats.PostCount</b> posts</span>
+            <span><b>@Card.Stats.FollowerCount</b> followers</span>
+            <span><b>@Card.Stats.LikesReceived</b> likes</span>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public ProfileCardDto Card { get; set; } = default!;
+
+    private string BannerStyle => string.IsNullOrWhiteSpace(Card.BannerUrl)
+        ? "background:linear-gradient(120deg, var(--accent), var(--accent-2));"
+        : $"background-image:url(\"{Api.Resolve(Card.BannerUrl)}\");";
+}

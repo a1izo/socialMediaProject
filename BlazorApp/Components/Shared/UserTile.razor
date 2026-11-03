@@ -1,0 +1,30 @@
+@inject ApiConfig Api
+
+@* A small themed tile for user lists: their banner, avatar and name in their own colors. *@
+<div class="user-tile cn-themed @ThemeCss.Classes(Card.Theme)" style="@ThemeCss.Variables(Card.Theme) @ThemeCss.Background(Card.Theme, Api)">
+    <FontLinks Urls="@ThemeCss.FontUrls(Card.Theme.DisplayFont)" />
+    <a class="user-tile-link" href="/u/@Card.UserName">
+        <span class="user-tile-banner" style="@BannerStyle"></span>
+        <Avatar Url="@Card.AvatarUrl" Name="@Card.DisplayName" Shape="@Card.Theme.AvatarShape" Size="56" Class="user-tile-avatar" />
+        <span class="user-tile-name">@Card.DisplayName</span>
+        <span class="user-tile-handle">@@@Card.UserName</span>
+        @if (!string.IsNullOrWhiteSpace(Card.Tagline))
+        {
+            <span class="user-tile-tagline">@Card.Tagline</span>
+        }
+        <span class="user-tile-stats">@Card.Stats.FollowerCount followers // @Card.Stats.PostCount posts</span>
+    </a>
+    @if (ChildContent is not null)
+    {
+        <div class="user-tile-actions">@ChildContent</div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public ProfileCardDto Card { get; set; } = default!;
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private string BannerStyle => string.IsNullOrWhiteSpace(Card.BannerUrl)
+        ? "background:linear-gradient(120deg, var(--accent), var(--accent-2));"
+        : $"background-image:url(\"{Api.Resolve(Card.BannerUrl)}\");";
+}

@@ -1,0 +1,15 @@
+@inherits ProfileModuleBase
+
+@{ string? embedUrl = Embeds.ToEmbedUrl(Settings.Url); }
+@if (embedUrl is null)
+{
+    <p class="module-empty">@(Editing ? "paste a youtube or spotify link in the module settings." : "")</p>
+}
+else
+{
+    <div class="embed @(Editing ? "is-editing" : "")">
+        <iframe src="@embedUrl" height="@Math.Clamp(Settings.Height ?? 352, 80, 720)" loading="lazy"
+                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                referrerpolicy="strict-origin-when-cross-origin" title="embedded media"></iframe>
+    </div>
+}

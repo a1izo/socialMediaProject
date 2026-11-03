@@ -1,0 +1,11 @@
+@inherits ProfileModuleBase
+
+<dl class="info-list">
+    @foreach (InfoField field in Settings.Fields ?? new())
+    {
+        <div class="info-row">
+            <dt>@field.Key</dt>
+            <dd>@field.Value</dd>
+        </div>
+    }
+</dl>

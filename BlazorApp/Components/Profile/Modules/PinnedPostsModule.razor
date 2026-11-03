@@ -1,0 +1,55 @@
+@inherits ProfileModuleBase
+@inject IPostService PostService
+
+@if (posts is null)
+{
+    <Loading />
+}
+else if (posts.Count == 0)
+{
+    <p class="module-empty">@(Editing ? "nothing pinned. pick posts in the module settings." : "")</p>
+}
+else
+{
+    <div class="post-list post-list-compact">
+        @foreach (PostDto post in posts)
+        {
+            <div class="pinned-post" @key="post.Id">
+                <Icon Name="pin" Size="14" Class="pinned-icon" />
+                <PostCard Post="post" ShowAuthor="false" Compact="true" />
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private List<PostDto>? posts;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!ShouldReload())
+        {
+            return;
+        }
+
+        List<PostDto> loaded = new();
+        foreach (int postId in Settings.PostIds ?? new())
+        {
+            try
+            {
+                PostDto post = await PostService.GetPostAsync(postId);
+                // only the owner's own posts can be pinned
+                if (post.UserId == Profile.UserId)
+                {
+                    loaded.Add(post);
+                }
+            }
+            catch (Exception)
+            {
+                // the post was deleted, skip it
+            }
+        }
+
+        posts = loaded;
+    }
+}

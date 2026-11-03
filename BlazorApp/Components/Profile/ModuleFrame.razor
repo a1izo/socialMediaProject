@@ -1,0 +1,81 @@
+@* Wraps one module: card styling, optional title and HUD label, and the edit-mode toolbar.
+   In edit mode the frame is draggable; dropping one module onto another moves it there. *@
+@{ ModuleInfo info = ModuleCatalog.Get(Module.Type); }
+<section class="module module-@Module.Type span-@Module.Span @ThemeCss.ModuleClasses(Module.Style) @(Selected ? "is-selected" : "") @(!Module.IsVisible ? "is-hidden" : "") @(dragOver ? "is-drag-over" : "")"
+         style="@ThemeCss.ModuleVariables(Module.Style)"
+         draggable="@(Editing ? "true" : "false")"
+         @ondragstart="() => OnDragStart.InvokeAsync(Index)"
+         @ondragenter="() => dragOver = Editing"
+         @ondragleave="() => dragOver = false"
+         @ondragover:preventDefault="true"
+         @ondrop="DropAsync"
+         @ondragend="() => dragOver = false">
+
+    <FontLinks Urls="@ThemeCss.FontUrls(Module.Style.DisplayFont, Module.Style.BodyFont)" />
+
+    @if (Editing)
+    {
+        <div class="module-toolbar" @onclick:stopPropagation="true">
+            <span class="module-grip" title="drag to move"><Icon Name="drag" Size="16" /></span>
+            <span class="module-type">@info.Label</span>
+            <span class="spacer"></span>
+            <button type="button" class="tool-btn" title="move earlier" @onclick="() => OnMove.InvokeAsync(-1)"><Icon Name="arrow-left" Size="14" /></button>
+            <button type="button" class="tool-btn" title="move later" @onclick="() => OnMove.InvokeAsync(1)"><Icon Name="arrow-right" Size="14" /></button>
+            <button type="button" class="tool-btn" title="narrower" @onclick="() => OnResize.InvokeAsync(-1)"><Icon Name="minus" Size="14" /></button>
+            <span class="module-span">@Module.Span/12</span>
+            <button type="button" class="tool-btn" title="wider" @onclick="() => OnResize.InvokeAsync(1)"><Icon Name="plus" Size="14" /></button>
+            <button type="button" class="tool-btn" title="@(Module.IsVisible ? "hide" : "show")" @onclick="ToggleVisible"><Icon Name="@(Module.IsVisible ? "eye" : "eye-off")" Size="14" /></button>
+            <button type="button" class="tool-btn tool-btn-main" title="module settings" @onclick="() => OnSelect.InvokeAsync(Index)"><Icon Name="gear" Size="14" /></button>
+        </div>
+    }
+
+    <span class="hud-label module-hud">MOD.@((Index + 1).ToString("00")) // @info.Label.ToUpper()</span>
+
+    @if (Module.ShowTitle && !string.IsNullOrWhiteSpace(Module.Title))
+    {
+        <h2 class="module-title">@Module.Title</h2>
+    }
+
+    <div class="module-body">
+        <DynamicComponent Type="info.Component" Parameters="@ModuleParameters" />
+    </div>
+</section>
+
+@code {
+    [Parameter, EditorRequired] public ProfileDto Profile { get; set; } = default!;
+    [Parameter, EditorRequired] public ProfileModuleDto Module { get; set; } = default!;
+    [Parameter] public int Index { get; set; }
+    [Parameter] public bool Editing { get; set; }
+    [Parameter] public bool Selected { get; set; }
+    [Parameter] public EventCallback<int> OnSelect { get; set; }
+    [Parameter] public EventCallback<int> OnDragStart { get; set; }
+    [Parameter] public EventCallback<int> OnDropOn { get; set; }
+    [Parameter] public EventCallback<int> OnMove { get; set; }
+    [Parameter] public EventCallback<int> OnResize { get; set; }
+    [Parameter] public EventCallback OnChanged { get; set; }
+
+    private bool dragOver;
+
+    private Dictionary<string, object> ModuleParameters => new()
+    {
+        [nameof(ProfileModuleBase.Profile)] = Profile,
+        [nameof(ProfileModuleBase.Module)] = Module,
+        [nameof(ProfileModuleBase.Settings)] = ModuleSettings.Parse(Module.SettingsJson),
+        [nameof(ProfileModuleBase.Editing)] = Editing
+    };
+
+    private async Task DropAsync()
+    {
+        dragOver = false;
+        if (Editing)
+        {
+            await OnDropOn.InvokeAsync(Index);
+        }
+    }
+
+    private async Task ToggleVisible()
+    {
+        Module.IsVisible = !Module.IsVisible;
+        await OnChanged.InvokeAsync();
+    }
+}

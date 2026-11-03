@@ -121,6 +121,11 @@ public class CommentInMemoryRepository : ICommentRepository
         return Task.CompletedTask;
     }
 
+    public IQueryable<int> GetLikerIds(int commentId)
+    {
+        return commentLikes.Where(cl => cl.CommentId == commentId).Select(cl => cl.UserId).ToList().AsQueryable();
+    }
+
     public Task<int> GetLikeCountAsync(int commentId)
     {
         int count = commentLikes.Count(cl => cl.CommentId == commentId);

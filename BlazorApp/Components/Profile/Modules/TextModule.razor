@@ -1,0 +1,4 @@
+@inherits ProfileModuleBase
+
+<MarkdownView Text="@Settings.Markdown"
+              Class="@($"text-block size-{CssValues.OneOf(Settings.Size, "md", "sm", "md", "lg", "xl")} align-{CssValues.OneOf(Settings.Align, "left", "left", "center", "right")}")" />

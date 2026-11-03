@@ -10,4 +10,5 @@ public class CommentDto
     public int? ParentCommentId { get; set; }
     public DateTime CreatedDate { get; set; }
     public int LikeCount { get; set; }
+    public List<int> LikedByUserIds { get; set; } = new();
 }

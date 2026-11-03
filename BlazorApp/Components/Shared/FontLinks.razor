@@ -1,0 +1,9 @@
+@* Loads the Google Fonts a theme needs. Links in the body work fine and are cached by the browser. *@
+@foreach (string url in Urls)
+{
+    <link rel="stylesheet" href="@url" />
+}
+
+@code {
+    [Parameter] public List<string> Urls { get; set; } = new();
+}

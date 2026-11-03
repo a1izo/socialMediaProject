@@ -61,8 +61,7 @@ public class PostsController : ControllerBase
         Post post = await postRepo.GetSingleAsync(id);
         Dictionary<int, string> userNames = GetUserNames();
 
-        PostDto dto = DtoMapper.ToDto(post, UserNameOf(post.UserId, userNames),
-            await postRepo.GetLikeCountAsync(post.Id));
+        PostDto dto = await BuildPostDtoAsync(post, userNames);
         if (includeComments)
         {
             dto.Comments = await GetCommentDtosForPostAsync(post.Id, userNames);
@@ -77,9 +76,22 @@ public class PostsController : ControllerBase
         [FromQuery] int? userId,
         [FromQuery] string? userName,
         [FromQuery] string? orderBy,
-        [FromQuery] int? take)
+        [FromQuery] int? take,
+        [FromQuery] int? tagId,
+        [FromQuery] int? followedBy)
     {
         IQueryable<Post> posts = postRepo.GetMany();
+
+        if (tagId is not null)
+        {
+            posts = posts.Where(p => postRepo.GetTagsForPost(p.Id).Any(t => t.Id == tagId));
+        }
+
+        if (followedBy is not null)
+        {
+            List<int> followingIds = userRepo.GetFollowing(followedBy.Value).Select(u => u.Id).ToList();
+            posts = posts.Where(p => followingIds.Contains(p.UserId));
+        }
 
         if (!string.IsNullOrWhiteSpace(titleContains))
         {
@@ -104,8 +116,7 @@ public class PostsController : ControllerBase
         List<PostDto> dtos = new();
         foreach (Post post in posts.ToList())
         {
-            dtos.Add(DtoMapper.ToDto(post, UserNameOf(post.UserId, userNames),
-                await postRepo.GetLikeCountAsync(post.Id)));
+            dtos.Add(await BuildPostDtoAsync(post, userNames));
         }
 
         IEnumerable<PostDto> result = orderBy?.ToLower() switch
@@ -200,11 +211,23 @@ public class PostsController : ControllerBase
         List<CommentDto> dtos = new();
         foreach (Comment comment in comments)
         {
-            dtos.Add(DtoMapper.ToDto(comment, UserNameOf(comment.UserId, userNames),
-                await commentRepo.GetLikeCountAsync(comment.Id)));
+            CommentDto dto = DtoMapper.ToDto(comment, UserNameOf(comment.UserId, userNames),
+                await commentRepo.GetLikeCountAsync(comment.Id));
+            dto.LikedByUserIds = commentRepo.GetLikerIds(comment.Id).ToList();
+            dtos.Add(dto);
         }
 
         return dtos;
+    }
+
+    private async Task<PostDto> BuildPostDtoAsync(Post post, Dictionary<int, string> userNames)
+    {
+        PostDto dto = DtoMapper.ToDto(post, UserNameOf(post.UserId, userNames),
+            await postRepo.GetLikeCountAsync(post.Id));
+        dto.LikedByUserIds = postRepo.GetLikerIds(post.Id).ToList();
+        dto.Tags = postRepo.GetTagsForPost(post.Id).ToList().Select(DtoMapper.ToDto).ToList();
+        dto.CommentCount = commentRepo.GetMany().Count(c => c.PostId == post.Id);
+        return dto;
     }
 
     private User GetExistingUser(int userId)

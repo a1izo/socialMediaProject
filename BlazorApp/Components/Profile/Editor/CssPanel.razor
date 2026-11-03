@@ -1,0 +1,37 @@
+<section class="ed-section-flat">
+    <p class="ed-hint">
+        write your own css. it only ever applies inside your profile: every selector is prefixed with
+        <code>.cn-profile-u@(Profile.UserId)</code>, so <code>h2 { … }</code> styles your headings and nothing else on cybernet.
+    </p>
+    <textarea class="input css-editor" rows="16" spellcheck="false" placeholder=".module { transform: rotate(-1deg); }"
+              @bind="Profile.CustomCss" @bind:event="oninput" @bind:after="Changed"></textarea>
+    <span class="ed-hint">@(Profile.CustomCss?.Length ?? 0) / @ProfileCss.MaxLength characters</span>
+
+    <details class="ed-section">
+        <summary>class reference</summary>
+        <ul class="css-ref">
+            <li><code>.banner</code> header image</li>
+            <li><code>.profile-avatar</code>, <code>.profile-name</code>, <code>.profile-tagline</code></li>
+            <li><code>.profile-grid</code> the module grid</li>
+            <li><code>.module</code> every module, plus <code>.module-bio</code>, <code>.module-gallery</code>, …</li>
+            <li><code>.module-title</code>, <code>.module-body</code>, <code>.hud-label</code></li>
+            <li><code>.post-card</code>, <code>.tag-chip</code>, <code>.stat</code></li>
+            <li>variables: <code>--bg --surface --text --muted --accent --accent-2 --line --radius</code></li>
+        </ul>
+    </details>
+    <details class="ed-section">
+        <summary>what is blocked</summary>
+        <ul class="css-ref">
+            <li><code>@@import</code>, <code>@@font-face</code> and external <code>url()</code>s (only your own uploads work)</li>
+            <li><code>position: fixed</code> (turned into absolute)</li>
+            <li>scripts of any kind: <code>expression()</code>, <code>javascript:</code></li>
+        </ul>
+    </details>
+</section>
+
+@code {
+    [Parameter, EditorRequired] public ProfileDto Profile { get; set; } = default!;
+    [Parameter] public EventCallback OnChanged { get; set; }
+
+    private Task Changed() => OnChanged.InvokeAsync();
+}

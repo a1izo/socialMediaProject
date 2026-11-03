@@ -1,0 +1,50 @@
+@inherits ProfileModuleBase
+@inject IUserService UserService
+@inject ProfileCardCache CardCache
+
+@if (followers is null)
+{
+    <Loading />
+}
+else if (followers.Count == 0)
+{
+    <p class="module-empty">no followers yet.</p>
+}
+else
+{
+    <div class="avatar-wall">
+        @foreach (ProfileCardDto follower in followers)
+        {
+            <a href="/u/@follower.UserName" title="@follower.DisplayName" @key="follower.UserId">
+                <Avatar Url="@follower.AvatarUrl" Name="@follower.DisplayName" Shape="@follower.Theme.AvatarShape" Size="44" />
+            </a>
+        }
+    </div>
+    <a class="module-more" href="/u/@Profile.UserName/followers">see all @Profile.Stats.FollowerCount <Icon Name="arrow-right" Size="12" /></a>
+}
+
+@code {
+    private List<ProfileCardDto>? followers;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!ShouldReload())
+        {
+            return;
+        }
+
+        try
+        {
+            List<int> ids = (await UserService.GetFollowersAsync(Profile.UserId))
+                .Select(u => u.Id)
+                .Take(Math.Clamp(Settings.Count ?? 12, 1, 48))
+                .ToList();
+            await CardCache.EnsureAsync(ids);
+            followers = ids.Select(id => CardCache.Get(id)).Where(c => c is not null).Select(c => c!).ToList();
+        }
+        catch (Exception)
+        {
+            followers = new();
+        }
+    }
+}

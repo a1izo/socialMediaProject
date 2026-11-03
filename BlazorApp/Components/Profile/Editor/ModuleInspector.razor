@@ -1,0 +1,329 @@
+@inject IUserService UserService
+@inject IPostService PostService
+@inject ProfileCardCache CardCache
+
+@* Edits one module: general options, its own content settings, and style overrides. *@
+<details class="ed-section" open>
+    <summary><Icon Name="gear" Size="14" /> general</summary>
+    <label class="ed-field">
+        <span class="ed-label">title</span>
+        <input class="input input-sm" @bind="Module.Title" @bind:event="oninput" @bind:after="Changed" maxlength="60" />
+    </label>
+    <ToggleField Label="show title" @bind-Value="Module.ShowTitle" @bind-Value:after="Changed" />
+    <ToggleField Label="visible to visitors" @bind-Value="Module.IsVisible" @bind-Value:after="Changed" />
+    <ChoiceField Label="width (of 12 columns)" Value="@Module.Span.ToString()" ValueChanged="SetSpan"
+                 Options='new[] { ("3", "3"), ("4", "4"), ("6", "6"), ("8", "8"), ("12", "12") }' />
+    <ChoiceField Label="height" Value="@(Module.Style.Height ?? "auto")" ValueChanged='v => SetStyle(() => Module.Style.Height = v == "auto" ? null : v)'
+                 Options='new[] { ("auto", "auto"), ("short", "short"), ("medium", "medium"), ("tall", "tall") }' />
+    <ChoiceField Label="padding" Value="@(Module.Style.Padding ?? "normal")" ValueChanged='v => SetStyle(() => Module.Style.Padding = v == "normal" ? null : v)'
+                 Options='new[] { ("compact", "compact"), ("normal", "normal"), ("roomy", "roomy") }' />
+</details>
+
+<details class="ed-section" open>
+    <summary><Icon Name="edit" Size="14" /> content</summary>
+    @switch (Module.Type)
+    {
+        case ProfileModuleTypes.Bio:
+            <label class="ed-field">
+                <span class="ed-label">bio // markdown</span>
+                <textarea class="input input-sm" rows="8" @bind="settings.Markdown" @bind:event="oninput" @bind:after="Commit"></textarea>
+            </label>
+            break;
+
+        case ProfileModuleTypes.Text:
+            <label class="ed-field">
+                <span class="ed-label">text // markdown, # for big headings</span>
+                <textarea class="input input-sm" rows="6" @bind="settings.Markdown" @bind:event="oninput" @bind:after="Commit"></textarea>
+            </label>
+            <ChoiceField Label="size" Value="@(settings.Size ?? "md")" ValueChanged="v => Set(() => settings.Size = v)"
+                         Options='new[] { ("sm", "small"), ("md", "medium"), ("lg", "large"), ("xl", "huge") }' />
+            <ChoiceField Label="align" Value="@(settings.Align ?? "left")" ValueChanged="v => Set(() => settings.Align = v)"
+                         Options='new[] { ("left", "left"), ("center", "center"), ("right", "right") }' />
+            break;
+
+        case ProfileModuleTypes.Status:
+            <label class="ed-field">
+                <span class="ed-label">symbol / emoji</span>
+                <input class="input input-sm" @bind="settings.Emoji" @bind:event="oninput" @bind:after="Commit" maxlength="4" />
+            </label>
+            <label class="ed-field">
+                <span class="ed-label">label</span>
+                <input class="input input-sm" @bind="settings.Label" @bind:event="oninput" @bind:after="Commit" maxlength="24" />
+            </label>
+            <label class="ed-field">
+                <span class="ed-label">status</span>
+                <input class="input input-sm" @bind="settings.Text" @bind:event="oninput" @bind:after="Commit" maxlength="80" />
+            </label>
+            break;
+
+        case ProfileModuleTypes.Info:
+            settings.Fields ??= new();
+            foreach (InfoField field in settings.Fields)
+            {
+                <div class="ed-row">
+                    <input class="input input-sm" placeholder="key" @bind="field.Key" @bind:event="oninput" @bind:after="Commit" maxlength="30" />
+                    <input class="input input-sm" placeholder="value" @bind="field.Value" @bind:event="oninput" @bind:after="Commit" maxlength="80" />
+                    <button type="button" class="tool-btn" title="remove" @onclick="() => Set(() => settings.Fields.Remove(field))"><Icon Name="x" Size="12" /></button>
+                </div>
+            }
+            <button type="button" class="btn btn-sm" @onclick="() => Set(() => settings.Fields.Add(new InfoField()))"><Icon Name="plus" Size="12" /> add field</button>
+            break;
+
+        case ProfileModuleTypes.Links:
+            settings.Links ??= new();
+            foreach (LinkItem link in settings.Links)
+            {
+                <div class="ed-link">
+                    <div class="ed-row">
+                        <select class="input input-sm ed-icon-select" value="@link.Icon" @onchange='e => Set(() => link.Icon = e.Value?.ToString() ?? "link")'>
+                            @foreach (string icon in LinkIcons)
+                            {
+                                <option value="@icon">@icon</option>
+                            }
+                        </select>
+                        <input class="input input-sm" placeholder="label" @bind="link.Label" @bind:event="oninput" @bind:after="Commit" maxlength="40" />
+                        <button type="button" class="tool-btn" title="remove" @onclick="() => Set(() => settings.Links.Remove(link))"><Icon Name="x" Size="12" /></button>
+                    </div>
+                    <input class="input input-sm" placeholder="https://" @bind="link.Url" @bind:event="oninput" @bind:after="Commit" />
+                </div>
+            }
+            <button type="button" class="btn btn-sm" @onclick='() => Set(() => settings.Links.Add(new LinkItem { Url = "https://" }))'><Icon Name="plus" Size="12" /> add link</button>
+            break;
+
+        case ProfileModuleTypes.Stats:
+            <ChoiceField Label="layout" Value="@(settings.Layout ?? "tiles")" ValueChanged="v => Set(() => settings.Layout = v)"
+                         Options='new[] { ("tiles", "tiles"), ("inline", "inline") }' />
+            break;
+
+        case ProfileModuleTypes.LatestPosts:
+            <RangeField Label="how many" Min="1" Max="20" Value="@(settings.Count ?? 5)" ValueChanged="v => Set(() => settings.Count = v)" />
+            <ToggleField Label="show excerpts" Value="@(settings.ShowExcerpt ?? true)" ValueChanged="v => Set(() => settings.ShowExcerpt = v)" />
+            break;
+
+        case ProfileModuleTypes.Followers:
+            <RangeField Label="how many" Min="1" Max="48" Value="@(settings.Count ?? 12)" ValueChanged="v => Set(() => settings.Count = v)" />
+            break;
+
+        case ProfileModuleTypes.TagCloud:
+            <RangeField Label="how many tags" Min="1" Max="30" Value="@(settings.Count ?? 10)" ValueChanged="v => Set(() => settings.Count = v)" />
+            break;
+
+        case ProfileModuleTypes.PinnedPosts:
+            <p class="ed-hint">pick your own posts to pin.</p>
+            if (ownPosts is null)
+            {
+                <Loading />
+            }
+            else
+            {
+                settings.PostIds ??= new();
+                foreach (PostDto post in ownPosts)
+                {
+                    <ToggleField Label="@post.Title" Value="@settings.PostIds.Contains(post.Id)" ValueChanged="on => Toggle(settings.PostIds, post.Id, on, 10)" />
+                }
+                if (ownPosts.Count == 0)
+                {
+                    <p class="muted small">you haven't posted anything yet.</p>
+                }
+            }
+            break;
+
+        case ProfileModuleTypes.TopFriends:
+            <p class="ed-hint">pick up to 8 people you follow.</p>
+            if (following is null)
+            {
+                <Loading />
+            }
+            else
+            {
+                settings.UserIds ??= new();
+                foreach (UserDto user in following)
+                {
+                    <ToggleField Label="@user.UserName" Value="@settings.UserIds.Contains(user.Id)" ValueChanged="on => Toggle(settings.UserIds, user.Id, on, 8)" />
+                }
+                if (following.Count == 0)
+                {
+                    <p class="muted small">follow some people first.</p>
+                }
+            }
+            break;
+
+        case ProfileModuleTypes.Gallery:
+            settings.Images ??= new();
+            <div class="ed-gallery">
+                @foreach (string image in settings.Images.ToList())
+                {
+                    <div class="ed-gallery-item">
+                        <ImageField Label="" Value="@image" ValueChanged="v => ReplaceImage(image, v)" />
+                    </div>
+                }
+            </div>
+            if (settings.Images.Count < 24)
+            {
+                <ImageField Label="add image" Value="@null" ValueChanged="AddImage" />
+            }
+            <RangeField Label="columns" Min="1" Max="6" Value="@(settings.Columns ?? 3)" ValueChanged="v => Set(() => settings.Columns = v)" />
+            <ChoiceField Label="crop" Value="@(settings.Aspect ?? "square")" ValueChanged="v => Set(() => settings.Aspect = v)"
+                         Options='new[] { ("square", "square"), ("natural", "natural") }' />
+            break;
+
+        case ProfileModuleTypes.Embed:
+            <label class="ed-field">
+                <span class="ed-label">youtube or spotify link</span>
+                <input class="input input-sm" @bind="settings.Url" @bind:event="oninput" @bind:after="Commit" placeholder="https://open.spotify.com/track/…" />
+            </label>
+            if (!string.IsNullOrWhiteSpace(settings.Url) && Embeds.ToEmbedUrl(settings.Url) is null)
+            {
+                <p class="ed-hint ed-warn">only youtube and spotify links can be embedded.</p>
+            }
+            <RangeField Label="height" Min="80" Max="720" Step="8" Unit="px" Value="@(settings.Height ?? 352)" ValueChanged="v => Set(() => settings.Height = v)" />
+            break;
+
+        case ProfileModuleTypes.Divider:
+            <ChoiceField Label="style" Value="@(settings.Style ?? "line")" ValueChanged="v => Set(() => settings.Style = v)"
+                         Options='new[] { ("line", "line"), ("stars", "stars"), ("ticks", "ticks"), ("space", "space") }' />
+            <RangeField Label="height" Min="8" Max="240" Unit="px" Value="@(settings.Height ?? 48)" ValueChanged="v => Set(() => settings.Height = v)" />
+            break;
+    }
+</details>
+
+<details class="ed-section">
+    <summary><Icon Name="palette" Size="14" /> style overrides</summary>
+    <p class="ed-hint">empty fields inherit from the theme.</p>
+    <ColorField Label="surface" AllowInherit="true" Value="@Module.Style.Surface" ValueChanged="v => SetStyle(() => Module.Style.Surface = v)" />
+    <ColorField Label="text" AllowInherit="true" Value="@Module.Style.Text" ValueChanged="v => SetStyle(() => Module.Style.Text = v)" />
+    <ColorField Label="accent" AllowInherit="true" Value="@Module.Style.Accent" ValueChanged="v => SetStyle(() => Module.Style.Accent = v)" />
+    <ColorField Label="border" AllowInherit="true" Value="@Module.Style.Border" ValueChanged="v => SetStyle(() => Module.Style.Border = v)" />
+    <ChoiceField Label="card style" Value="@(Module.Style.CardStyle ?? "inherit")" ValueChanged='v => SetStyle(() => Module.Style.CardStyle = v == "inherit" ? null : v)'
+                 Options="CardStyleOptions" />
+    <ToggleField Label="override radius" Value="@(Module.Style.Radius is not null)" ValueChanged="on => SetStyle(() => Module.Style.Radius = on ? Profile.Theme.Radius : null)" />
+    @if (Module.Style.Radius is not null)
+    {
+        <RangeField Label="radius" Min="0" Max="40" Unit="px" Value="@Module.Style.Radius.Value" ValueChanged="v => SetStyle(() => Module.Style.Radius = v)" />
+    }
+    <ToggleField Label="override border width" Value="@(Module.Style.BorderWidth is not null)" ValueChanged="on => SetStyle(() => Module.Style.BorderWidth = on ? Profile.Theme.BorderWidth : null)" />
+    @if (Module.Style.BorderWidth is not null)
+    {
+        <RangeField Label="border width" Min="0" Max="8" Unit="px" Value="@Module.Style.BorderWidth.Value" ValueChanged="v => SetStyle(() => Module.Style.BorderWidth = v)" />
+    }
+    <ToggleField Label="override glow" Value="@(Module.Style.GlowStrength is not null)" ValueChanged="on => SetStyle(() => Module.Style.GlowStrength = on ? 16 : null)" />
+    @if (Module.Style.GlowStrength is not null)
+    {
+        <RangeField Label="glow" Min="0" Max="60" Unit="px" Value="@Module.Style.GlowStrength.Value" ValueChanged="v => SetStyle(() => Module.Style.GlowStrength = v)" />
+    }
+    <FontField Label="display font" AllowInherit="true" Value="@Module.Style.DisplayFont" ValueChanged="v => SetStyle(() => Module.Style.DisplayFont = v)" />
+    <FontField Label="body font" AllowInherit="true" Value="@Module.Style.BodyFont" ValueChanged="v => SetStyle(() => Module.Style.BodyFont = v)" />
+</details>
+
+<div class="ed-actions">
+    <button type="button" class="btn btn-sm" @onclick="OnDuplicate"><Icon Name="layers" Size="14" /> duplicate</button>
+    <ConfirmButton Class="btn btn-sm btn-danger" Question="remove this module?" OnConfirm="OnDelete">
+        <Icon Name="trash" Size="14" /> remove
+    </ConfirmButton>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public ProfileModuleDto Module { get; set; } = default!;
+    [Parameter, EditorRequired] public ProfileDto Profile { get; set; } = default!;
+    [Parameter] public int? CurrentUserId { get; set; }
+    [Parameter] public EventCallback OnChanged { get; set; }
+    [Parameter] public EventCallback OnDelete { get; set; }
+    [Parameter] public EventCallback OnDuplicate { get; set; }
+
+    private static readonly string[] LinkIcons = { "link", "globe", "code", "music", "camera", "mail", "star", "heart", "image", "send" };
+
+    private static readonly (string, string)[] CardStyleOptions =
+        new[] { ("inherit", "inherit") }.Concat(ThemePanel.CardStyles).ToArray();
+
+    private ModuleSettings settings = new();
+    private List<PostDto>? ownPosts;
+    private List<UserDto>? following;
+
+    protected override async Task OnInitializedAsync()
+    {
+        settings = ModuleSettings.Parse(Module.SettingsJson);
+        try
+        {
+            if (Module.Type == ProfileModuleTypes.PinnedPosts)
+            {
+                ownPosts = await PostService.GetPostsAsync(new PostQuery { UserId = Profile.UserId });
+            }
+            else if (Module.Type == ProfileModuleTypes.TopFriends)
+            {
+                following = await UserService.GetFollowingAsync(Profile.UserId);
+            }
+        }
+        catch (Exception)
+        {
+            ownPosts ??= new();
+            following ??= new();
+        }
+    }
+
+    private Task Changed() => OnChanged.InvokeAsync();
+
+    // writes the edited settings back into the module so the preview updates
+    private Task Commit()
+    {
+        Module.SettingsJson = settings.ToJson();
+        return OnChanged.InvokeAsync();
+    }
+
+    private Task Set(Action change)
+    {
+        change();
+        return Commit();
+    }
+
+    private Task SetStyle(Action change)
+    {
+        change();
+        return OnChanged.InvokeAsync();
+    }
+
+    private Task SetSpan(string? value)
+    {
+        if (int.TryParse(value, out int span))
+        {
+            Module.Span = span;
+        }
+
+        return OnChanged.InvokeAsync();
+    }
+
+    private Task Toggle(List<int> ids, int id, bool on, int max)
+    {
+        if (on && !ids.Contains(id) && ids.Count < max)
+        {
+            ids.Add(id);
+        }
+        else if (!on)
+        {
+            ids.Remove(id);
+        }
+
+        return Commit();
+    }
+
+    private Task AddImage(string? url)
+    {
+        if (!string.IsNullOrWhiteSpace(url))
+        {
+            settings.Images!.Add(url);
+        }
+
+        return Commit();
+    }
+
+    private Task ReplaceImage(string oldUrl, string? newUrl)
+    {
+        int index = settings.Images!.IndexOf(oldUrl);
+        if (index >= 0)
+        {
+            if (string.IsNullOrWhiteSpace(newUrl)) settings.Images.RemoveAt(index);
+            else settings.Images[index] = newUrl;
+        }
+
+        return Commit();
+    }
+}

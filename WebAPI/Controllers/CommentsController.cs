@@ -170,9 +170,11 @@ public class CommentsController : ControllerBase
 
     private async Task<CommentDto> ToDtoAsync(Comment comment, Dictionary<int, string> userNames)
     {
-        return DtoMapper.ToDto(comment,
+        CommentDto dto = DtoMapper.ToDto(comment,
             userNames.GetValueOrDefault(comment.UserId, DtoMapper.DeletedUserName),
             await commentRepo.GetLikeCountAsync(comment.Id));
+        dto.LikedByUserIds = commentRepo.GetLikerIds(comment.Id).ToList();
+        return dto;
     }
 
     private Dictionary<int, string> GetUserNames()

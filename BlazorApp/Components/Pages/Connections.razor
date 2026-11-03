@@ -1,0 +1,94 @@
+@page "/u/{UserName}/followers"
+@page "/u/{UserName}/following"
+@implements IDisposable
+@inject IUserService UserService
+@inject IProfileService ProfileService
+@inject ProfileCardCache CardCache
+@inject NavigationManager NavMgr
+
+<PageTitle>@UserName // @Mode // cybernet</PageTitle>
+
+<div class="container">
+    <a class="back-link" href="/u/@UserName"><Icon Name="arrow-left" Size="14" /> @@@UserName</a>
+
+    <section class="feed-hero">
+        <span class="hud-label">CN.LINKS // @UserName.ToUpper()</span>
+        <h1 class="display">@Mode</h1>
+        <div class="segmented">
+            <a class="@(Mode == "followers" ? "is-active" : "")" href="/u/@UserName/followers">followers</a>
+            <a class="@(Mode == "following" ? "is-active" : "")" href="/u/@UserName/following">following</a>
+        </div>
+    </section>
+
+    <ErrorBanner Message="@error" />
+
+    @if (loading)
+    {
+        <Loading />
+    }
+    else if (users.Count == 0)
+    {
+        <div class="empty-state"><p>@(Mode == "followers" ? "no followers yet." : "not following anyone yet.")</p></div>
+    }
+    else
+    {
+        <div class="user-grid">
+            @foreach (UserDto user in users)
+            {
+                ProfileCardDto? card = CardCache.Get(user.Id);
+                if (card is not null)
+                {
+                    <UserTile @key="user.Id" Card="card" />
+                }
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string UserName { get; set; } = "";
+
+    private List<UserDto> users = new();
+    private bool loading = true;
+    private string? error;
+
+    private string Mode => NavMgr.Uri.TrimEnd('/').EndsWith("/following") ? "following" : "followers";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        loading = true;
+        error = null;
+        try
+        {
+            ProfileDto profile = await ProfileService.GetProfileAsync(UserName);
+            users = Mode == "following"
+                ? await UserService.GetFollowingAsync(profile.UserId)
+                : await UserService.GetFollowersAsync(profile.UserId);
+            await CardCache.EnsureAsync(users.Select(u => u.Id));
+        }
+        catch (Exception e)
+        {
+            error = e.Message;
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        NavMgr.LocationChanged += OnLocationChanged;
+    }
+
+    private async void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        await InvokeAsync(OnParametersSetAsync);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        NavMgr.LocationChanged -= OnLocationChanged;
+    }
+}

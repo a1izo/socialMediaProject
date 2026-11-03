@@ -1,0 +1,9 @@
+@inherits ProfileModuleBase
+
+@{ string style = CssValues.OneOf(Settings.Style, "line", "line", "stars", "ticks", "space"); }
+<div class="divider divider-@style" style="--divider-h:@(Math.Clamp(Settings.Height ?? 48, 8, 240))px" aria-hidden="true">
+    @if (style == "stars")
+    {
+        <StarGlyph Size="10" /><StarGlyph Size="18" /><StarGlyph Size="10" />
+    }
+</div>

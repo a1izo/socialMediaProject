@@ -1,0 +1,53 @@
+@* Any Google Font can be typed in by name. The suggestions are just a starting point. *@
+<div class="ed-field ed-font">
+    <span class="ed-label">@Label</span>
+    <div class="ed-color-row">
+        <input class="input input-sm" value="@Value" @onchange="OnChangeAsync" list="font-suggestions" placeholder="@(AllowInherit ? "inherit" : "font name")" spellcheck="false" />
+        @if (AllowInherit && !string.IsNullOrEmpty(Value))
+        {
+            <button type="button" class="tool-btn" title="inherit from theme" @onclick="() => ValueChanged.InvokeAsync(null)"><Icon Name="x" Size="12" /></button>
+        }
+    </div>
+    @if (!string.IsNullOrWhiteSpace(Value))
+    {
+        <FontLinks Urls="@ThemeCss.FontUrls(Value)" />
+        <span class="ed-font-preview" style="font-family:'@CssValues.Font(Value, "sans-serif")'">the quick signal ✦ 0123</span>
+    }
+    <datalist id="font-suggestions">
+        @foreach (string font in Suggestions)
+        {
+            <option value="@font"></option>
+        }
+    </datalist>
+</div>
+
+@code {
+    public static readonly string[] Suggestions =
+    {
+        "Unbounded", "Space Grotesk", "JetBrains Mono", "Anton", "Syne", "Archivo Black", "Instrument Serif",
+        "Inter Tight", "Space Mono", "VT323", "Silkscreen", "Major Mono Display", "Bebas Neue", "Orbitron",
+        "Michroma", "Monoton", "Pixelify Sans", "Press Start 2P", "Rubik Glitch", "DM Serif Display",
+        "Playfair Display", "Fraunces", "IBM Plex Mono", "Righteous", "Bricolage Grotesque", "Darker Grotesque"
+    };
+
+    [Parameter] public string Label { get; set; } = "";
+    [Parameter] public string? Value { get; set; }
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+    [Parameter] public bool AllowInherit { get; set; }
+
+    private async Task OnChangeAsync(ChangeEventArgs e)
+    {
+        string text = e.Value?.ToString()?.Trim() ?? "";
+        if (text.Length == 0)
+        {
+            if (AllowInherit) await ValueChanged.InvokeAsync(null);
+            return;
+        }
+
+        string font = CssValues.Font(text, "");
+        if (font.Length > 0)
+        {
+            await ValueChanged.InvokeAsync(font);
+        }
+    }
+}

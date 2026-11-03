@@ -110,6 +110,12 @@ public class PostFileRepository : IPostRepository
         await JsonFileHelper.SaveAsync(postLikesFilePath, postLikes);
     }
 
+    public IQueryable<int> GetLikerIds(int postId)
+    {
+        List<PostLike> postLikes = JsonFileHelper.Load<PostLike>(postLikesFilePath);
+        return postLikes.Where(pl => pl.PostId == postId).Select(pl => pl.UserId).AsQueryable();
+    }
+
     public async Task<int> GetLikeCountAsync(int postId)
     {
         List<PostLike> postLikes = await JsonFileHelper.LoadAsync<PostLike>(postLikesFilePath);

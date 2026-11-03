@@ -1,0 +1,77 @@
+/* cybernet design tokens.
+   The shell defines these on :root. A profile container redefines the same names with its
+   owner's theme, so every component inside a profile is themed without extra code. */
+
+:root,
+[data-shell="void"] {
+    --bg: #0a0a0b;
+    --surface: #121215;
+    --surface-2: #1b1b20;
+    --text: #ecebe6;
+    --muted: #85858f;
+    --accent: #ff2a4f;
+    --on-accent: #ffffff;
+    --accent-2: #2f45ff;
+    --line: #2a2a31;
+    --radius: 2px;
+    --border-w: 1px;
+    --glow-color: var(--accent);
+    --glow: 0px;
+
+    --font-display: 'Unbounded', sans-serif;
+    --font-body: 'Space Grotesk', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+    --base-size: 16px;
+    --heading-case: none;
+    --tracking: 0em;
+    --gap: 16px;
+
+    --danger: #ff2a4f;
+    --success: #3ddc97;
+    --focus: #2f45ff;
+
+    --grain-opacity: 0.07;
+    --scan-opacity: 0.045;
+    --topbar-h: 60px;
+    --editorbar-h: 52px;
+    --drawer-w: 380px;
+
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 24px;
+    --space-6: 32px;
+    --space-7: 48px;
+    --space-8: 64px;
+
+    --text-xs: 0.72rem;
+    --text-sm: 0.86rem;
+    --text-md: 1rem;
+    --text-lg: 1.25rem;
+    --text-xl: clamp(1.5rem, 1.1rem + 1.4vw, 2.2rem);
+    --text-2xl: clamp(2rem, 1.2rem + 3vw, 3.6rem);
+    --text-3xl: clamp(2.6rem, 1.2rem + 5.5vw, 6rem);
+
+    --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+    --dur: 180ms;
+
+    color-scheme: dark;
+}
+
+[data-shell="paper"] {
+    --bg: #e9e7e2;
+    --surface: #f4f2ed;
+    --surface-2: #e1ded7;
+    --text: #0d0d0f;
+    --muted: #5d5b57;
+    --accent: #e5122f;
+    --on-accent: #ffffff;
+    --accent-2: #1f2dff;
+    --line: #c4c1b9;
+    --focus: #1f2dff;
+    --grain-opacity: 0.13;
+    --scan-opacity: 0;
+
+    color-scheme: light;
+}

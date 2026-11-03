@@ -1,0 +1,31 @@
+@inherits ProfileModuleBase
+@inject ApiConfig Api
+
+@{ List<string> images = (Settings.Images ?? new()).Where(CssValues.IsUrl).ToList(); }
+@if (images.Count == 0)
+{
+    <p class="module-empty">@(Editing ? "no images yet. upload some in the module settings." : "")</p>
+}
+else
+{
+    <div class="gallery aspect-@(Settings.Aspect == "natural" ? "natural" : "square")" style="--cols:@Math.Clamp(Settings.Columns ?? 3, 1, 6)">
+        @foreach (string image in images)
+        {
+            <button type="button" class="gallery-item" @onclick="() => open = image" disabled="@Editing">
+                <img src="@Api.Resolve(image)" alt="" loading="lazy" />
+            </button>
+        }
+    </div>
+}
+
+@if (open is not null)
+{
+    <div class="lightbox" @onclick="() => open = null" role="dialog" aria-label="image preview">
+        <img src="@Api.Resolve(open)" alt="" />
+        <button type="button" class="icon-btn lightbox-close" aria-label="close"><Icon Name="x" /></button>
+    </div>
+}
+
+@code {
+    private string? open;
+}

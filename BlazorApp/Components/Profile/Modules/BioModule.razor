@@ -1,0 +1,10 @@
+@inherits ProfileModuleBase
+
+@if (string.IsNullOrWhiteSpace(Settings.Markdown))
+{
+    <p class="module-empty">@(Editing ? "empty bio. open the module settings to write one." : "")</p>
+}
+else
+{
+    <MarkdownView Text="@Settings.Markdown" Class="bio-text" />
+}

@@ -1,0 +1,94 @@
+@inject IPostService PostService
+@inject NavigationManager NavMgr
+
+<article class="post-card @(Compact ? "is-compact" : "")">
+    <header class="post-card-head">
+        @if (ShowAuthor)
+        {
+            <UserChip UserName="@Post.AuthorUserName" Card="Card" />
+        }
+        <span class="post-card-time" title="@TimeFormat.Stamp(Post.CreatedDate)">@TimeFormat.Ago(Post.CreatedDate)</span>
+    </header>
+
+    <a class="post-card-title" href="/posts/@Post.Id">@Post.Title</a>
+
+    @if (ShowExcerpt)
+    {
+        <p class="post-card-excerpt">@Markdown.ToPlainText(Post.Body, Compact ? 120 : 240)</p>
+    }
+
+    <footer class="post-card-foot">
+        <LikeButton Liked="@IsLiked" Count="@Post.LikeCount" Busy="@busy" OnToggle="ToggleLikeAsync" />
+        <a class="post-card-stat" href="/posts/@Post.Id#comments">
+            <Icon Name="comment" Size="16" />
+            <span>@Post.CommentCount</span>
+        </a>
+        <span class="post-card-tags">
+            @foreach (TagDto tag in Post.Tags)
+            {
+                <a class="tag-chip" href="/?tag=@tag.Id">#@tag.Name</a>
+            }
+        </span>
+    </footer>
+    @if (!string.IsNullOrEmpty(error))
+    {
+        <ErrorBanner Message="@error" />
+    }
+</article>
+
+@code {
+    [Parameter, EditorRequired] public PostDto Post { get; set; } = default!;
+    [Parameter] public ProfileCardDto? Card { get; set; }
+    [Parameter] public bool ShowAuthor { get; set; } = true;
+    [Parameter] public bool ShowExcerpt { get; set; } = true;
+    [Parameter] public bool Compact { get; set; }
+
+    [CascadingParameter] public Task<AuthenticationState> State { get; set; } = default!;
+
+    private int? userId;
+    private bool busy;
+    private string? error;
+
+    private bool IsLiked => userId is not null && Post.LikedByUserIds.Contains(userId.Value);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        AuthenticationState authenticationState = await State;
+        userId = authenticationState.User.GetUserId();
+    }
+
+    private async Task ToggleLikeAsync()
+    {
+        if (userId is null)
+        {
+            NavMgr.NavigateTo("/login");
+            return;
+        }
+
+        busy = true;
+        error = null;
+        try
+        {
+            if (IsLiked)
+            {
+                await PostService.UnlikeAsync(Post.Id, userId.Value);
+                Post.LikedByUserIds.Remove(userId.Value);
+                Post.LikeCount--;
+            }
+            else
+            {
+                await PostService.LikeAsync(Post.Id, userId.Value);
+                Post.LikedByUserIds.Add(userId.Value);
+                Post.LikeCount++;
+            }
+        }
+        catch (Exception e)
+        {
+            error = e.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+}

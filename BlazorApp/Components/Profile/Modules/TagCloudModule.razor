@@ -1,0 +1,50 @@
+@inherits ProfileModuleBase
+@inject IPostService PostService
+
+@if (tags is null)
+{
+    <Loading />
+}
+else if (tags.Count == 0)
+{
+    <p class="module-empty">no tags used yet.</p>
+}
+else
+{
+    int max = tags.Max(t => t.Count);
+    <div class="tag-cloud">
+        @foreach ((TagDto tag, int count) in tags)
+        {
+            <a class="tag-chip tag-cloud-item" href="/?tag=@tag.Id" style="--weight:@(0.85 + count / (double)max * 0.9)">
+                #@tag.Name <sup>@count</sup>
+            </a>
+        }
+    </div>
+}
+
+@code {
+    private List<(TagDto Tag, int Count)>? tags;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!ShouldReload())
+        {
+            return;
+        }
+
+        try
+        {
+            List<PostDto> posts = await PostService.GetPostsAsync(new PostQuery { UserId = Profile.UserId });
+            tags = posts.SelectMany(p => p.Tags)
+                .GroupBy(t => t.Id)
+                .Select(g => (g.First(), g.Count()))
+                .OrderByDescending(t => t.Item2)
+                .Take(Math.Clamp(Settings.Count ?? 10, 1, 30))
+                .ToList();
+        }
+        catch (Exception)
+        {
+            tags = new();
+        }
+    }
+}

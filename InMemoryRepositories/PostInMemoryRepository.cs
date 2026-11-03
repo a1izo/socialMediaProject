@@ -136,6 +136,11 @@ public class PostInMemoryRepository : IPostRepository
         return Task.CompletedTask;
     }
 
+    public IQueryable<int> GetLikerIds(int postId)
+    {
+        return postLikes.Where(pl => pl.PostId == postId).Select(pl => pl.UserId).ToList().AsQueryable();
+    }
+
     public Task<int> GetLikeCountAsync(int postId)
     {
         int count = postLikes.Count(pl => pl.PostId == postId);

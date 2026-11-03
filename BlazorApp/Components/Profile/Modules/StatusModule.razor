@@ -1,0 +1,10 @@
+@inherits ProfileModuleBase
+
+<div class="status">
+    <span class="status-emoji">@(string.IsNullOrWhiteSpace(Settings.Emoji) ? "✦" : Settings.Emoji)</span>
+    <span class="status-text">
+        <span class="status-label">@(string.IsNullOrWhiteSpace(Settings.Label) ? "status" : Settings.Label)</span>
+        <span class="status-value">@Settings.Text</span>
+    </span>
+    <span class="status-pulse" aria-hidden="true"></span>
+</div>

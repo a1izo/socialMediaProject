@@ -2,6 +2,7 @@ using ApiContracts;
 using Entities;
 using Microsoft.AspNetCore.Mvc;
 using RepositoryContracts;
+using WebAPI.Profiles;
 
 namespace WebAPI.Controllers;
 
@@ -10,10 +11,12 @@ namespace WebAPI.Controllers;
 public class UsersController : ControllerBase
 {
     private readonly IUserRepository userRepo;
+    private readonly IProfileRepository profileRepo;
 
-    public UsersController(IUserRepository userRepo)
+    public UsersController(IUserRepository userRepo, IProfileRepository profileRepo)
     {
         this.userRepo = userRepo;
+        this.profileRepo = profileRepo;
     }
 
     [HttpPost]
@@ -35,6 +38,7 @@ public class UsersController : ControllerBase
             CreatedDate = DateTime.Now
         };
         User created = await userRepo.AddAsync(user);
+        await ProfileDefaults.CreateAsync(profileRepo, created);
         UserDto dto = DtoMapper.ToDto(created);
         return Created($"/users/{dto.Id}", dto);
     }
@@ -85,6 +89,13 @@ public class UsersController : ControllerBase
     public async Task<ActionResult> DeleteUser([FromRoute] int id)
     {
         await userRepo.DeleteAsync(id);
+
+        Profile? profile = profileRepo.GetMany().SingleOrDefault(p => p.UserId == id);
+        if (profile is not null)
+        {
+            await profileRepo.DeleteAsync(profile.Id);
+        }
+
         return NoContent();
     }
 

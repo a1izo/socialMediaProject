@@ -1,0 +1,75 @@
+@inject IUploadService UploadService
+@inject ApiConfig Api
+
+@* Upload an image to the Web API, or paste the address of one. *@
+<div class="ed-field ed-image">
+    <span class="ed-label">@Label</span>
+    <div class="ed-image-row">
+        <span class="ed-image-preview">
+            @if (CssValues.IsUrl(Value))
+            {
+                <img src="@Api.Resolve(Value)" alt="" />
+            }
+            else
+            {
+                <Icon Name="image" Size="18" />
+            }
+        </span>
+        <label class="btn btn-sm">
+            <Icon Name="upload" Size="14" /> @(uploading ? "uploading" : "upload")
+            <InputFile OnChange="UploadAsync" accept="image/png,image/jpeg,image/gif,image/webp" class="visually-hidden" />
+        </label>
+        @if (!string.IsNullOrEmpty(Value))
+        {
+            <button type="button" class="tool-btn" title="remove" @onclick="() => ValueChanged.InvokeAsync(null)"><Icon Name="x" Size="12" /></button>
+        }
+    </div>
+    <input class="input input-sm" value="@Value" @onchange="OnUrlAsync" placeholder="or paste https://… image address" spellcheck="false" />
+    <ErrorBanner Message="@error" />
+</div>
+
+@code {
+    [Parameter] public string Label { get; set; } = "";
+    [Parameter] public string? Value { get; set; }
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+
+    private bool uploading;
+    private string? error;
+
+    private async Task UploadAsync(InputFileChangeEventArgs e)
+    {
+        error = null;
+        uploading = true;
+        try
+        {
+            string url = await UploadService.UploadImageAsync(e.File);
+            await ValueChanged.InvokeAsync(url);
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            uploading = false;
+        }
+    }
+
+    private async Task OnUrlAsync(ChangeEventArgs e)
+    {
+        string text = e.Value?.ToString()?.Trim() ?? "";
+        error = null;
+        if (text.Length == 0)
+        {
+            await ValueChanged.InvokeAsync(null);
+        }
+        else if (CssValues.IsUrl(text))
+        {
+            await ValueChanged.InvokeAsync(text);
+        }
+        else
+        {
+            error = "That doesn't look like an image address.";
+        }
+    }
+}

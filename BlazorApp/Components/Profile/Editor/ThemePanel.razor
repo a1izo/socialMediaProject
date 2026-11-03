@@ -1,0 +1,111 @@
+<details class="ed-section" open>
+    <summary><Icon Name="sparkle" Size="14" /> presets</summary>
+    <p class="ed-hint">start from a preset, then tweak anything below. applying one replaces the current theme.</p>
+    <div class="preset-grid">
+        @foreach (string name in ThemePresets.Names)
+        {
+            ProfileThemeDto preset = ThemePresets.Create(name);
+            <button type="button" class="preset @(Theme.Preset == name ? "is-active" : "")" @onclick="() => OnPresetApplied.InvokeAsync(name)"
+                    style="--p-bg:@CssValues.Color(preset.Background, "#000");--p-surface:@CssValues.Color(preset.Surface, "#111");--p-text:@CssValues.Color(preset.Text, "#fff");--p-accent:@CssValues.Color(preset.Accent, "#f00");--p-accent-2:@CssValues.Color(preset.Accent2, "#00f")">
+                <span class="preset-swatch"><i></i><i></i><i></i></span>
+                <span class="preset-name">@name</span>
+            </button>
+        }
+    </div>
+</details>
+
+<details class="ed-section" open>
+    <summary><Icon Name="palette" Size="14" /> colors</summary>
+    <ColorField Label="background" @bind-Value="Theme.Background" @bind-Value:after="Changed" />
+    <ColorField Label="surface (cards)" @bind-Value="Theme.Surface" @bind-Value:after="Changed" />
+    <ColorField Label="text" @bind-Value="Theme.Text" @bind-Value:after="Changed" />
+    <ColorField Label="muted text" @bind-Value="Theme.Muted" @bind-Value:after="Changed" />
+    <ColorField Label="accent" @bind-Value="Theme.Accent" @bind-Value:after="Changed" />
+    <ColorField Label="second accent" @bind-Value="Theme.Accent2" @bind-Value:after="Changed" />
+    <ColorField Label="borders" @bind-Value="Theme.Border" @bind-Value:after="Changed" />
+    <p class="ed-hint">tip: add two hex digits for transparency, e.g. #12121580.</p>
+</details>
+
+<details class="ed-section">
+    <summary><Icon Name="image" Size="14" /> background</summary>
+    <ChoiceField Label="mode" @bind-Value="Theme.BackgroundMode" @bind-Value:after="Changed"
+                 Options='new[] { ("solid", "solid"), ("gradient", "gradient"), ("pattern", "pattern"), ("image", "image") }' />
+    @switch (Theme.BackgroundMode)
+    {
+        case "gradient":
+            <ColorField Label="from" @bind-Value="Theme.GradientFrom" @bind-Value:after="Changed" />
+            <ColorField Label="via (optional)" AllowInherit="true" Value="@NullIfEmpty(Theme.GradientVia)" ValueChanged="v => SetVia(v)" />
+            <ColorField Label="to" @bind-Value="Theme.GradientTo" @bind-Value:after="Changed" />
+            <RangeField Label="angle" Min="0" Max="360" Unit="°" @bind-Value="Theme.GradientAngle" @bind-Value:after="Changed" />
+            break;
+        case "pattern":
+            <ChoiceField Label="pattern" @bind-Value="Theme.Pattern" @bind-Value:after="Changed"
+                         Options='new[] { ("grid", "grid"), ("halftone", "halftone"), ("dots", "dots"), ("scanlines", "scanlines"), ("noise", "noise") }' />
+            <ColorField Label="pattern color" @bind-Value="Theme.PatternColor" @bind-Value:after="Changed" />
+            break;
+        case "image":
+            <ImageField Label="background image" @bind-Value="Theme.BackgroundImageUrl" @bind-Value:after="Changed" />
+            <ChoiceField Label="fit" @bind-Value="Theme.BackgroundImageFit" @bind-Value:after="Changed"
+                         Options='new[] { ("cover", "cover"), ("tile", "tile") }' />
+            <RangeField Label="dim" Min="0" Max="90" Unit="%" @bind-Value="Theme.BackgroundDim" @bind-Value:after="Changed" />
+            break;
+    }
+</details>
+
+<details class="ed-section">
+    <summary><Icon Name="type" Size="14" /> type</summary>
+    <FontField Label="display font (headings)" @bind-Value="Theme.DisplayFont" @bind-Value:after="Changed" />
+    <FontField Label="body font" @bind-Value="Theme.BodyFont" @bind-Value:after="Changed" />
+    <FontField Label="mono font (labels)" @bind-Value="Theme.MonoFont" @bind-Value:after="Changed" />
+    <RangeField Label="base size" Min="12" Max="22" Unit="px" @bind-Value="Theme.BaseFontSize" @bind-Value:after="Changed" />
+    <ChoiceField Label="heading case" @bind-Value="Theme.HeadingCase" @bind-Value:after="Changed"
+                 Options='new[] { ("none", "as typed"), ("upper", "UPPERCASE") }' />
+    <RangeField Label="heading letter spacing" Min="-5" Max="20" @bind-Value="Theme.LetterSpacing" @bind-Value:after="Changed" />
+    <p class="ed-hint">any font from fonts.google.com works. type its exact name.</p>
+</details>
+
+<details class="ed-section">
+    <summary><Icon Name="layers" Size="14" /> cards &amp; layout</summary>
+    <ChoiceField Label="card style" @bind-Value="Theme.CardStyle" @bind-Value:after="Changed" Options="CardStyles" />
+    <RangeField Label="corner radius" Min="0" Max="40" Unit="px" @bind-Value="Theme.Radius" @bind-Value:after="Changed" />
+    <RangeField Label="border width" Min="0" Max="8" Unit="px" @bind-Value="Theme.BorderWidth" @bind-Value:after="Changed" />
+    <ColorField Label="glow color" @bind-Value="Theme.GlowColor" @bind-Value:after="Changed" />
+    <RangeField Label="glow strength" Min="0" Max="60" Unit="px" @bind-Value="Theme.GlowStrength" @bind-Value:after="Changed" />
+    <RangeField Label="gap between modules" Min="0" Max="48" Unit="px" @bind-Value="Theme.GridGap" @bind-Value:after="Changed" />
+</details>
+
+<details class="ed-section">
+    <summary><Icon Name="sparkle" Size="14" /> effects</summary>
+    <ToggleField Label="film grain" @bind-Value="Theme.Grain" @bind-Value:after="Changed" />
+    <ToggleField Label="scanlines" @bind-Value="Theme.Scanlines" @bind-Value:after="Changed" />
+    <ToggleField Label="halftone overlay" @bind-Value="Theme.Halftone" @bind-Value:after="Changed" />
+    <ToggleField Label="chromatic headings" @bind-Value="Theme.Chromatic" @bind-Value:after="Changed" />
+    <ToggleField Label="hud labels on modules" @bind-Value="Theme.HudLabels" @bind-Value:after="Changed" />
+    <ToggleField Label="floating sparkles" @bind-Value="Theme.Sparkles" @bind-Value:after="Changed" />
+    @if (Theme.Sparkles)
+    {
+        <RangeField Label="sparkle density" Min="1" Max="3" @bind-Value="Theme.SparkleDensity" @bind-Value:after="Changed" />
+    }
+    <ToggleField Label="sparkle cursor trail" @bind-Value="Theme.SparkleTrail" @bind-Value:after="Changed" />
+</details>
+
+@code {
+    [Parameter, EditorRequired] public ProfileThemeDto Theme { get; set; } = default!;
+    [Parameter] public EventCallback OnChanged { get; set; }
+    [Parameter] public EventCallback<string> OnPresetApplied { get; set; }
+
+    public static readonly (string, string)[] CardStyles =
+    {
+        ("solid", "solid"), ("glass", "glass"), ("outline", "outline"), ("brutal", "brutal"), ("hud", "hud"), ("bare", "bare")
+    };
+
+    private Task Changed() => OnChanged.InvokeAsync();
+
+    private static string? NullIfEmpty(string? value) => string.IsNullOrWhiteSpace(value) ? null : value;
+
+    private async Task SetVia(string? value)
+    {
+        Theme.GradientVia = value ?? "";
+        await Changed();
+    }
+}

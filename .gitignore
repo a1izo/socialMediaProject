@@ -13,3 +13,9 @@ WebAPI/postTags.json
 WebAPI/comments.json
 WebAPI/commentLikes.json
 WebAPI/tags.json
+
+# Uploaded images
+WebAPI/wwwroot/uploads/*
+!WebAPI/wwwroot/uploads/.gitkeep
+WebAPI/profiles.json
+WebAPI/profileModules.json
