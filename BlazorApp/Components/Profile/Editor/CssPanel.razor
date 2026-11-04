@@ -1,7 +1,7 @@
 <section class="ed-section-flat">
     <p class="ed-hint">
-        write your own css. it only ever applies inside your profile: every selector is prefixed with
-        <code>.cn-profile-u@(Profile.UserId)</code>, so <code>h2 { … }</code> styles your headings and nothing else on cybernet.
+        your css only affects your own profile. cybernet puts <code>.cn-profile-u@(Profile.UserId)</code> in front of every
+        selector, so <code>h2 { … }</code> styles your headings and nothing else.
     </p>
     <textarea class="input css-editor" rows="16" spellcheck="false" placeholder=".module { transform: rotate(-1deg); }"
               @bind="Profile.CustomCss" @bind:event="oninput" @bind:after="Changed"></textarea>

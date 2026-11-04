@@ -1,26 +1,52 @@
 @inject ApiConfig Api
+@inject IJSRuntime Js
 
-<header class="profile-header">
-    <div class="banner" style="@BannerStyle">
-        @if (string.IsNullOrWhiteSpace(Profile.BannerUrl))
+@* The avatar is placed on the banner by the theme's AvatarX / AvatarY / AvatarSize sliders, all in % of the
+   banner, so it stays on the same spot of the image at any screen width. A few lines of JS measure how far
+   the avatar hangs below the banner, so the name and buttons can make room for it. *@
+<header class="profile-header" @ref="header">
+    <div class="banner" style="@BannerStyle" @onclick="OpenHeaderAsync" title="@(Editing ? "change banner" : null)">
+        @if (Profile.Theme.BannerFit == "full" && CssValues.IsUrl(Profile.BannerUrl))
+        {
+            <img class="banner-img" src="@Api.Resolve(Profile.BannerUrl)" alt="" />
+        }
+        else if (string.IsNullOrWhiteSpace(Profile.BannerUrl))
         {
             <div class="banner-generated" aria-hidden="true"><StarGlyph Size="160" /></div>
         }
-        <span class="hud-label banner-hud">NODE.@Profile.UserId.ToString("0000") // SINCE @Profile.CreatedDate.ToString("yyyy.MM.dd")</span>
+
+        <span class="avatar-anchor deco-@CssValues.OneOf(Profile.Theme.AvatarDecoration, "none", ThemeCss.Decorations)"
+              style="@ThemeCss.AvatarPosition(Profile.Theme)" @onclick="OpenHeaderAsync" @onclick:stopPropagation="true">
+            <Avatar Url="@Profile.AvatarUrl" Name="@Profile.DisplayName" Shape="@Profile.Theme.AvatarShape" Size="132" Class="profile-avatar" />
+            <span class="avatar-deco" aria-hidden="true"></span>
+        </span>
     </div>
 
     <div class="profile-id">
-        <Avatar Url="@Profile.AvatarUrl" Name="@Profile.DisplayName" Shape="@Profile.Theme.AvatarShape" Size="132" Class="profile-avatar" />
         <div class="profile-id-text">
-            <h1 class="profile-name" data-text="@Profile.DisplayName">@Profile.DisplayName</h1>
+            @if (Editing)
+            {
+                <input class="profile-name profile-name-input" @bind="Profile.DisplayName" @bind:event="oninput" @bind:after="ChangedAsync"
+                       maxlength="40" aria-label="display name" />
+            }
+            else
+            {
+                <h1 class="profile-name" data-text="@Profile.DisplayName">@Profile.DisplayName</h1>
+            }
             <div class="profile-handle">
                 <span>@@@Profile.UserName</span>
                 @if (Profile.IsModerator)
                 {
                     <span class="badge"><Icon Name="shield" Size="12" /> moderator</span>
                 }
+                <span class="profile-joined">joined @Profile.CreatedDate.ToString("MMM yyyy").ToLower()</span>
             </div>
-            @if (!string.IsNullOrWhiteSpace(Profile.Tagline))
+            @if (Editing)
+            {
+                <input class="profile-tagline profile-tagline-input" @bind="Profile.Tagline" @bind:event="oninput" @bind:after="ChangedAsync"
+                       maxlength="140" placeholder="add a short line about you" aria-label="tagline" />
+            }
+            else if (!string.IsNullOrWhiteSpace(Profile.Tagline))
             {
                 <p class="profile-tagline">@Profile.Tagline</p>
             }
@@ -28,19 +54,89 @@
                 <a href="/u/@Profile.UserName/followers"><b>@Profile.Stats.FollowerCount</b> followers</a>
                 <a href="/u/@Profile.UserName/following"><b>@Profile.Stats.FollowingCount</b> following</a>
                 <span><b>@Profile.Stats.PostCount</b> posts</span>
+                @if (songEmbed is not null)
+                {
+                    <button type="button" class="song-pill @(playing ? "is-playing" : "")" @onclick="() => playing = !playing">
+                        <Icon Name="@(playing ? "pause" : "play")" Size="12" /> @(playing ? "stop the song" : "play their song")
+                    </button>
+                }
             </div>
         </div>
         <div class="profile-actions">
             @ChildContent
         </div>
     </div>
+
+    @if (playing && songEmbed is not null)
+    {
+        <div class="song-player">
+            <iframe src="@songEmbed" height="@(songEmbed.Contains("spotify") ? 152 : 200)" loading="lazy"
+                    allow="autoplay; encrypted-media; clipboard-write; picture-in-picture"
+                    referrerpolicy="strict-origin-when-cross-origin" title="profile song"></iframe>
+        </div>
+    }
 </header>
 
 @code {
     [Parameter, EditorRequired] public ProfileDto Profile { get; set; } = default!;
+    [Parameter] public bool Editing { get; set; }
+    [Parameter] public EventCallback OnChanged { get; set; }
+    [Parameter] public EventCallback OnOpenHeader { get; set; }
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
-    private string BannerStyle => CssValues.IsUrl(Profile.BannerUrl)
-        ? $"background-image:url(\"{Api.Resolve(Profile.BannerUrl)}\");"
-        : "";
+    private ElementReference header;
+    private bool observing;
+    private bool playing;
+    private string? songEmbed;
+
+    private string BannerStyle
+    {
+        get
+        {
+            bool hasImage = CssValues.IsUrl(Profile.BannerUrl);
+            if (Profile.Theme.BannerFit == "full" && hasImage)
+            {
+                return "height:auto;";
+            }
+
+            return hasImage ? $"background-image:url(\"{Api.Resolve(Profile.BannerUrl)}\");" : "";
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        string? embed = Embeds.ToEmbedUrl(Profile.Theme.SongUrl);
+        // the song only starts after the visitor presses play, so autoplay inside the player is fine
+        songEmbed = embed is null ? null : embed.Contains("youtube") ? embed + "?autoplay=1" : embed;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        try
+        {
+            if (!observing)
+            {
+                observing = true;
+                await Js.InvokeVoidAsync("cybernet.header.observe", header);
+            }
+            else
+            {
+                await Js.InvokeVoidAsync("cybernet.header.measure", header);
+            }
+        }
+        catch (JSDisconnectedException)
+        {
+            // the circuit is gone
+        }
+    }
+
+    private Task ChangedAsync() => OnChanged.InvokeAsync();
+
+    private async Task OpenHeaderAsync()
+    {
+        if (Editing)
+        {
+            await OnOpenHeader.InvokeAsync();
+        }
+    }
 }

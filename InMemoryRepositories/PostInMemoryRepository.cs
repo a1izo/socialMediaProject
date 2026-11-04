@@ -1,4 +1,4 @@
-﻿using Entities;
+using Entities;
 using RepositoryContracts;
 
 namespace InMemoryRepositories;
@@ -8,6 +8,7 @@ public class PostInMemoryRepository : IPostRepository
     private readonly List<Post> posts = new();
     private readonly List<PostLike> postLikes = new();
     private readonly List<PostTag> postTags = new();
+    private readonly List<PostMedia> postMedia = new();
     private readonly ITagRepository tagRepository;
 
     public PostInMemoryRepository(ITagRepository tagRepository)
@@ -191,5 +192,17 @@ public class PostInMemoryRepository : IPostRepository
     {
         List<int> tagIds = postTags.Where(pt => pt.PostId == postId).Select(pt => pt.TagId).ToList();
         return tagRepository.GetMany().Where(t => tagIds.Contains(t.Id));
+    }
+
+    public Task AddMediaAsync(PostMedia media)
+    {
+        media.Id = postMedia.Any() ? postMedia.Max(m => m.Id) + 1 : 1;
+        postMedia.Add(media);
+        return Task.CompletedTask;
+    }
+
+    public IQueryable<PostMedia> GetMedia(int postId)
+    {
+        return postMedia.Where(m => m.PostId == postId).OrderBy(m => m.Order).ToList().AsQueryable();
     }
 }

@@ -1,0 +1,13 @@
+@* An on/off card for one effect, with a tiny live preview of what it does. *@
+<button type="button" class="tile effect-tile @(Value ? "is-active" : "")" @onclick="() => ValueChanged.InvokeAsync(!Value)" aria-pressed="@Value">
+    <span class="effect-demo demo-@Demo"><span>Aa</span></span>
+    <span class="tile-label">@Label</span>
+    <span class="effect-state">@(Value ? "on" : "off")</span>
+</button>
+
+@code {
+    [Parameter] public string Label { get; set; } = "";
+    [Parameter] public string Demo { get; set; } = "";
+    [Parameter] public bool Value { get; set; }
+    [Parameter] public EventCallback<bool> ValueChanged { get; set; }
+}

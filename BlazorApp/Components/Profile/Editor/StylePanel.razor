@@ -1,0 +1,317 @@
+@inject ApiConfig Api
+
+@* Visual pickers. Every choice is shown as a small preview in the profile's own colors, so you can
+   see what you're picking. The raw controls live in the advanced tab. *@
+<nav class="style-tabs" aria-label="style sections">
+    @foreach ((string key, string label, string icon) in Sections)
+    {
+        <button type="button" class="@(Section == key ? "is-active" : "")" @onclick="() => SectionChanged.InvokeAsync(key)">
+            <Icon Name="@icon" Size="14" /> @label
+        </button>
+    }
+</nav>
+
+<div class="style-body cn-themed-vars" style="@ThemeCss.Variables(Theme)">
+    @switch (Section)
+    {
+        case "colors":
+            <h3 class="ed-title">palette</h3>
+            <div class="swatch-grid">
+                @foreach (Palette palette in StyleOptions.Palettes)
+                {
+                    <button type="button" class="swatch @(IsPalette(palette) ? "is-active" : "")" @onclick="() => ApplyPalette(palette)" title="@palette.Name">
+                        <span class="swatch-colors" style="background:@palette.Background">
+                            <i style="background:@palette.Surface"></i><i style="background:@palette.Accent"></i><i style="background:@palette.Accent2"></i><i style="background:@palette.Text"></i>
+                        </span>
+                        <span class="swatch-name">@palette.Name</span>
+                    </button>
+                }
+            </div>
+            <h3 class="ed-title">fine-tune</h3>
+            <ColorField Label="accent" @bind-Value="Theme.Accent" @bind-Value:after="Changed" />
+            <ColorField Label="second accent" @bind-Value="Theme.Accent2" @bind-Value:after="Changed" />
+            <ColorField Label="background" @bind-Value="Theme.Background" @bind-Value:after="Changed" />
+            break;
+
+        case "type":
+            <h3 class="ed-title">fonts</h3>
+            <div class="tile-grid tile-grid-2">
+                @foreach (FontPairing pairing in StyleOptions.FontPairings)
+                {
+                    <button type="button" class="tile font-tile @(Theme.DisplayFont == pairing.Display && Theme.BodyFont == pairing.Body ? "is-active" : "")"
+                            @onclick="() => ApplyFonts(pairing)">
+                        <FontLinks Urls="@ThemeCss.FontUrls(pairing.Display, pairing.Body)" />
+                        <span class="font-tile-display" style="font-family:'@pairing.Display'">Aa</span>
+                        <span class="font-tile-body" style="font-family:'@pairing.Body'">@pairing.Name</span>
+                    </button>
+                }
+            </div>
+            <ChoiceField Label="text size" Value="@SizeName" ValueChanged="SetSize"
+                         Options='new[] { ("small", "small"), ("normal", "normal"), ("large", "large") }' />
+            <ChoiceField Label="headings" @bind-Value="Theme.HeadingCase" @bind-Value:after="Changed"
+                         Options='new[] { ("none", "as typed"), ("upper", "UPPERCASE") }' />
+            break;
+
+        case "layout":
+            <h3 class="ed-title">page layout</h3>
+            <div class="tile-grid tile-grid-2">
+                @foreach ((string key, string label) in LayoutOptions)
+                {
+                    <button type="button" class="tile layout-tile @(Theme.Layout == key ? "is-active" : "")" @onclick="() => SetLayout(key)">
+                        <span class="layout-diagram diagram-@key"><i></i><i></i><i></i><i></i></span>
+                        <span class="tile-label">@label</span>
+                    </button>
+                }
+            </div>
+            <h3 class="ed-title">how modules appear</h3>
+            <div class="tile-grid tile-grid-3">
+                @foreach ((string key, string label) in MotionOptions)
+                {
+                    <button type="button" class="tile motion-tile @(Theme.ModuleMotion == key ? "is-active" : "")" @onclick="() => Set(() => Theme.ModuleMotion = key)">
+                        <span class="motion-demo demo-@key"></span>
+                        <span class="tile-label">@label</span>
+                    </button>
+                }
+            </div>
+            <ChoiceField Label="space between modules" Value="@GapName" ValueChanged="SetGap"
+                         Options='new[] { ("tight", "tight"), ("normal", "normal"), ("airy", "airy") }' />
+            break;
+
+        case "background":
+            <h3 class="ed-title">background</h3>
+            <div class="tile-grid tile-grid-3">
+                <button type="button" class="tile bg-tile @(IsBg("solid") ? "is-active" : "")" @onclick='() => SetBackground("solid", null)'>
+                    <span class="bg-demo" style="background:@CssValues.Color(Theme.Background, "#000")"></span>
+                    <span class="tile-label">solid</span>
+                </button>
+                <button type="button" class="tile bg-tile @(IsBg("gradient") ? "is-active" : "")" @onclick='() => SetBackground("gradient", null)'>
+                    <span class="bg-demo" style="background:linear-gradient(160deg, var(--accent), var(--accent-2))"></span>
+                    <span class="tile-label">gradient</span>
+                </button>
+                @foreach (string pattern in Patterns)
+                {
+                    <button type="button" class="tile bg-tile @(IsBg("pattern", pattern) ? "is-active" : "")" @onclick='() => SetBackground("pattern", pattern)'>
+                        <span class="bg-demo" style="background-color:var(--bg);--pattern-color:var(--muted);@ThemeCss.Pattern(pattern)"></span>
+                        <span class="tile-label">@pattern</span>
+                    </button>
+                }
+            </div>
+            <h3 class="ed-title">animated</h3>
+            <div class="tile-grid tile-grid-3">
+                @foreach (string animation in ThemeCss.AnimatedBackgrounds.Skip(1))
+                {
+                    <button type="button" class="tile bg-tile @(Theme.AnimatedBackground == animation ? "is-active" : "")"
+                            @onclick='() => Set(() => Theme.AnimatedBackground = Theme.AnimatedBackground == animation ? "none" : animation)'>
+                        <span class="bg-demo bg-anim bg-@animation"></span>
+                        <span class="tile-label">@animation</span>
+                    </button>
+                }
+            </div>
+            <h3 class="ed-title">your own image</h3>
+            <ImageField Label="" Value="@Theme.BackgroundImageUrl" ValueChanged="SetBackgroundImage" />
+            if (Theme.BackgroundMode == "image")
+            {
+                <RangeField Label="darken" Min="0" Max="90" Unit="%" @bind-Value="Theme.BackgroundDim" @bind-Value:after="Changed" />
+            }
+            break;
+
+        case "cards":
+            <h3 class="ed-title">module style</h3>
+            <div class="tile-grid tile-grid-3 card-tiles cn-themed" style="@ThemeCss.Background(Theme, Api)">
+                @foreach ((string key, string label) in ThemePanel.CardStyles)
+                {
+                    <button type="button" class="tile card-tile @(Theme.CardStyle == key ? "is-active" : "")" @onclick="() => Set(() => Theme.CardStyle = key)">
+                        <span class="card-demo cards-@key"><span class="module"><b></b><i></i><i></i></span></span>
+                        <span class="tile-label">@label</span>
+                    </button>
+                }
+            </div>
+            <ChoiceField Label="corners" Value="@CornerName" ValueChanged="SetCorners"
+                         Options='new[] { ("sharp", "sharp"), ("soft", "soft"), ("round", "round") }' />
+            <ToggleField Label="glow" Value="@(Theme.GlowStrength > 0)" ValueChanged="on => Set(() => Theme.GlowStrength = on ? 18 : 0)" />
+            break;
+
+        case "header":
+            <h3 class="ed-title">banner</h3>
+            <ImageField Label="" @bind-Value="Profile.BannerUrl" @bind-Value:after="Changed" />
+            <ChoiceField Label="fit" @bind-Value="Theme.BannerFit" @bind-Value:after="Changed"
+                         Options='new[] { ("cover", "crop to height"), ("full", "show whole image") }' />
+            if (Theme.BannerFit != "full")
+            {
+                <RangeField Label="height" Min="80" Max="560" Step="10" Unit="px" @bind-Value="Theme.BannerHeight" @bind-Value:after="Changed" />
+            }
+
+            <h3 class="ed-title">avatar</h3>
+            <ImageField Label="" @bind-Value="Profile.AvatarUrl" @bind-Value:after="Changed" />
+            <RangeField Label="left / right" Min="0" Max="100" Unit="%" @bind-Value="Theme.AvatarX" @bind-Value:after="Changed" />
+            <RangeField Label="up / down" Min="0" Max="160" Unit="%" @bind-Value="Theme.AvatarY" @bind-Value:after="Changed" />
+            <RangeField Label="size" Min="4" Max="45" Unit="%" @bind-Value="Theme.AvatarSize" @bind-Value:after="Changed" />
+            <p class="ed-hint">positions are relative to the banner. if your banner has a frame drawn for the avatar, choose "show whole image" and slide the avatar into it.</p>
+            <div class="tile-grid tile-grid-4">
+                @foreach (string shape in new[] { "circle", "square", "hex", "star" })
+                {
+                    <button type="button" class="tile @(Theme.AvatarShape == shape ? "is-active" : "")" @onclick="() => Set(() => Theme.AvatarShape = shape)">
+                        <Avatar Url="@Profile.AvatarUrl" Name="@Profile.DisplayName" Shape="@shape" Size="40" />
+                        <span class="tile-label">@shape</span>
+                    </button>
+                }
+            </div>
+            <h3 class="ed-title">avatar decoration</h3>
+            <div class="tile-grid tile-grid-3">
+                @foreach (string decoration in ThemeCss.Decorations)
+                {
+                    <button type="button" class="tile @(Theme.AvatarDecoration == decoration ? "is-active" : "")" @onclick="() => Set(() => Theme.AvatarDecoration = decoration)">
+                        <span class="avatar-anchor deco-demo deco-@decoration"><Avatar Url="@Profile.AvatarUrl" Name="@Profile.DisplayName" Shape="@Theme.AvatarShape" Size="34" /><span class="avatar-deco"></span></span>
+                        <span class="tile-label">@decoration</span>
+                    </button>
+                }
+            </div>
+            <h3 class="ed-title">name style</h3>
+            <div class="tile-grid tile-grid-3">
+                @foreach (string nameStyle in ThemeCss.NameStyles)
+                {
+                    <button type="button" class="tile @(Theme.NameStyle == nameStyle ? "is-active" : "")" @onclick="() => Set(() => Theme.NameStyle = nameStyle)">
+                        <span class="namefx-@nameStyle name-demo"><span class="profile-name" data-text="Aa">Aa</span></span>
+                        <span class="tile-label">@nameStyle</span>
+                    </button>
+                }
+            </div>
+            <ChoiceField Label="name position" @bind-Value="Theme.NameAlign" @bind-Value:after="Changed"
+                         Options='new[] { ("left", "left"), ("center", "center"), ("right", "right") }' />
+            <h3 class="ed-title">song</h3>
+            <label class="ed-field">
+                <span class="ed-label">youtube or spotify link. visitors get a play button, it never autoplays</span>
+                <input class="input input-sm" @bind="Theme.SongUrl" @bind:event="oninput" @bind:after="Changed" placeholder="https://open.spotify.com/track/…" />
+            </label>
+            if (!string.IsNullOrWhiteSpace(Theme.SongUrl) && Embeds.ToEmbedUrl(Theme.SongUrl) is null)
+            {
+                <p class="ed-hint ed-warn">that link isn't from youtube or spotify.</p>
+            }
+            break;
+
+        case "effects":
+            <div class="tile-grid tile-grid-2">
+                <EffectTile Label="film grain" Demo="grain" @bind-Value="Theme.Grain" @bind-Value:after="Changed" />
+                <EffectTile Label="scanlines" Demo="scanlines" @bind-Value="Theme.Scanlines" @bind-Value:after="Changed" />
+                <EffectTile Label="halftone" Demo="halftone" @bind-Value="Theme.Halftone" @bind-Value:after="Changed" />
+                <EffectTile Label="rgb split" Demo="chroma" @bind-Value="Theme.Chromatic" @bind-Value:after="Changed" />
+                <EffectTile Label="floating stars" Demo="sparkles" @bind-Value="Theme.Sparkles" @bind-Value:after="Changed" />
+                <EffectTile Label="cursor trail" Demo="trail" @bind-Value="Theme.SparkleTrail" @bind-Value:after="Changed" />
+                <EffectTile Label="tech labels" Demo="hud" @bind-Value="Theme.HudLabels" @bind-Value:after="Changed" />
+            </div>
+            <RangeField Label="effect strength" Min="0" Max="100" Unit="%" @bind-Value="Theme.EffectIntensity" @bind-Value:after="Changed" />
+            break;
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public ProfileDto Profile { get; set; } = default!;
+    [Parameter] public string Section { get; set; } = "colors";
+    [Parameter] public EventCallback<string> SectionChanged { get; set; }
+    [Parameter] public EventCallback OnChanged { get; set; }
+
+    private ProfileThemeDto Theme => Profile.Theme;
+
+    private static readonly (string, string, string)[] Sections =
+    {
+        ("colors", "colors", "palette"), ("type", "type", "type"), ("layout", "layout", "grid"),
+        ("background", "background", "image"), ("cards", "cards", "layers"), ("header", "header", "user"),
+        ("effects", "effects", "sparkle")
+    };
+
+    private static readonly (string, string)[] LayoutOptions =
+    {
+        ("classic", "classic"), ("sidebar", "sidebar"), ("centered", "one column"), ("magazine", "magazine"), ("overlay", "big banner")
+    };
+
+    private static readonly (string, string)[] MotionOptions =
+    {
+        ("none", "still"), ("rise", "rise"), ("fade", "fade"), ("pop", "pop"), ("tilt", "tilted")
+    };
+
+    private static readonly string[] Patterns = { "grid", "halftone", "dots", "scanlines", "noise" };
+
+    private Task Changed() => OnChanged.InvokeAsync();
+
+    private Task Set(Action change)
+    {
+        change();
+        return Changed();
+    }
+
+    // a new layout also moves the avatar to that layout's spot, unless it is lined up with a banner frame
+    private Task SetLayout(string layout)
+    {
+        Theme.Layout = layout;
+        if (Theme.BannerFit != "full")
+        {
+            ThemePresets.ApplyAvatarDefaults(Theme);
+        }
+
+        return Changed();
+    }
+
+    private bool IsPalette(Palette palette) =>
+        string.Equals(Theme.Background, palette.Background, StringComparison.OrdinalIgnoreCase) &&
+        string.Equals(Theme.Accent, palette.Accent, StringComparison.OrdinalIgnoreCase);
+
+    private Task ApplyPalette(Palette palette)
+    {
+        Theme.Background = palette.Background;
+        Theme.Surface = palette.Surface;
+        Theme.Text = palette.Text;
+        Theme.Muted = palette.Muted;
+        Theme.Accent = palette.Accent;
+        Theme.Accent2 = palette.Accent2;
+        Theme.Border = palette.Border;
+        Theme.GlowColor = palette.Accent;
+        Theme.PatternColor = palette.Surface;
+        Theme.GradientFrom = palette.Background;
+        Theme.GradientVia = "";
+        Theme.GradientTo = palette.Accent2;
+        return Changed();
+    }
+
+    private Task ApplyFonts(FontPairing pairing)
+    {
+        Theme.DisplayFont = pairing.Display;
+        Theme.BodyFont = pairing.Body;
+        Theme.MonoFont = pairing.Mono;
+        return Changed();
+    }
+
+    private string SizeName => Theme.BaseFontSize <= 14 ? "small" : Theme.BaseFontSize >= 18 ? "large" : "normal";
+
+    private Task SetSize(string? name) => Set(() => Theme.BaseFontSize = name switch { "small" => 14, "large" => 18, _ => 16 });
+
+    private string GapName => Theme.GridGap <= 8 ? "tight" : Theme.GridGap >= 26 ? "airy" : "normal";
+
+    private Task SetGap(string? name) => Set(() => Theme.GridGap = name switch { "tight" => 8, "airy" => 28, _ => 16 });
+
+    private string CornerName => Theme.Radius <= 3 ? "sharp" : Theme.Radius >= 18 ? "round" : "soft";
+
+    private Task SetCorners(string? name) => Set(() => Theme.Radius = name switch { "sharp" => 0, "round" => 24, _ => 10 });
+
+    private bool IsBg(string mode, string? pattern = null) =>
+        Theme.BackgroundMode == mode && (pattern is null || Theme.Pattern == pattern);
+
+    private Task SetBackground(string mode, string? pattern)
+    {
+        Theme.BackgroundMode = mode;
+        if (pattern is not null) Theme.Pattern = pattern;
+        if (mode == "gradient" && Theme.GradientFrom == Theme.GradientTo)
+        {
+            Theme.GradientFrom = Theme.Background;
+            Theme.GradientTo = Theme.Accent2;
+        }
+
+        return Changed();
+    }
+
+    private Task SetBackgroundImage(string? url)
+    {
+        Theme.BackgroundImageUrl = url;
+        Theme.BackgroundMode = string.IsNullOrWhiteSpace(url) ? "solid" : "image";
+        return Changed();
+    }
+}

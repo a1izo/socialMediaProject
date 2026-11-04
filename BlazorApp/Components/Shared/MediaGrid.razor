@@ -1,0 +1,39 @@
+@inject ApiConfig Api
+
+@* Up to 4 images, gifs or videos. Videos play inline; images open full size when clicked. *@
+@if (Media.Count > 0)
+{
+    <div class="media-grid count-@Math.Min(Media.Count, 4)">
+        @foreach (PostMediaDto item in Media.Take(4))
+        {
+            if (item.Kind == "video")
+            {
+                <video class="media-item" src="@Api.Resolve(item.Url)" controls playsinline preload="metadata"></video>
+            }
+            else
+            {
+                <button type="button" class="media-item" @onclick="() => open = item.Url" aria-label="open image">
+                    <img src="@Api.Resolve(item.Url)" alt="" loading="lazy" />
+                    @if (item.Kind == "gif")
+                    {
+                        <span class="media-tag">gif</span>
+                    }
+                </button>
+            }
+        }
+    </div>
+}
+
+@if (open is not null)
+{
+    <div class="lightbox" @onclick="() => open = null" role="dialog" aria-label="image">
+        <img src="@Api.Resolve(open)" alt="" />
+        <button type="button" class="icon-btn lightbox-close" aria-label="close"><Icon Name="x" /></button>
+    </div>
+}
+
+@code {
+    [Parameter] public List<PostMediaDto> Media { get; set; } = new();
+
+    private string? open;
+}

@@ -10,5 +10,6 @@ public class Profile
     public string? BannerUrl { get; set; }
     public string ThemeJson { get; set; }
     public string? CustomCss { get; set; }
+    public string? StickersJson { get; set; }
     public DateTime UpdatedDate { get; set; }
 }

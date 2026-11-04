@@ -4,6 +4,7 @@ using Entities;
 using Microsoft.AspNetCore.Mvc;
 using RepositoryContracts;
 using WebAPI.Profiles;
+using WebAPI.Services;
 
 namespace WebAPI.Controllers;
 
@@ -12,16 +13,18 @@ namespace WebAPI.Controllers;
 public class ProfilesController : ControllerBase
 {
     private const int MaxModules = 40;
+    private const int MaxStickers = 60;
+    private static readonly string[] stickerKinds = { "glyph", "emoji", "image" };
 
     private readonly IProfileRepository profileRepo;
     private readonly IUserRepository userRepo;
-    private readonly IPostRepository postRepo;
+    private readonly ProfileCardBuilder cardBuilder;
 
-    public ProfilesController(IProfileRepository profileRepo, IUserRepository userRepo, IPostRepository postRepo)
+    public ProfilesController(IProfileRepository profileRepo, IUserRepository userRepo, ProfileCardBuilder cardBuilder)
     {
         this.profileRepo = profileRepo;
         this.userRepo = userRepo;
-        this.postRepo = postRepo;
+        this.cardBuilder = cardBuilder;
     }
 
     [HttpGet("{userName}")]
@@ -35,7 +38,7 @@ public class ProfilesController : ControllerBase
 
         Profile profile = await ProfileDefaults.GetOrCreateAsync(profileRepo, user);
         List<ProfileModule> modules = profileRepo.GetModules(user.Id).ToList();
-        return Ok(DtoMapper.ToDto(profile, user, modules, await GetStatsAsync(user.Id)));
+        return Ok(DtoMapper.ToDto(profile, user, modules, await cardBuilder.GetStatsAsync(user.Id)));
     }
 
     [HttpGet("cards")]
@@ -45,8 +48,7 @@ public class ProfilesController : ControllerBase
         List<ProfileCardDto> cards = new();
         foreach (User user in users)
         {
-            Profile profile = await ProfileDefaults.GetOrCreateAsync(profileRepo, user);
-            cards.Add(DtoMapper.ToCardDto(profile, user, await GetStatsAsync(user.Id)));
+            cards.Add(await cardBuilder.BuildCardAsync(user));
         }
 
         return Ok(cards);
@@ -84,6 +86,29 @@ public class ProfilesController : ControllerBase
             }
         }
 
+        if (request.Stickers.Count > MaxStickers)
+        {
+            throw new ArgumentException($"A profile can have at most {MaxStickers} stickers.");
+        }
+
+        foreach (StickerDto sticker in request.Stickers)
+        {
+            if (!stickerKinds.Contains(sticker.Kind) || string.IsNullOrWhiteSpace(sticker.Value) || sticker.Value.Length > 300)
+            {
+                throw new ArgumentException("One of the stickers is not valid.");
+            }
+
+            if (sticker.Kind == "image")
+            {
+                MediaUrls.Validate(sticker.Value, "image");
+            }
+
+            sticker.X = Math.Clamp(sticker.X, 0, 100);
+            sticker.Y = Math.Clamp(sticker.Y, 0, 20000);
+            sticker.Size = Math.Clamp(sticker.Size, 12, 600);
+            sticker.Rotation = Math.Clamp(sticker.Rotation, -180, 180);
+        }
+
         User user = await userRepo.GetSingleAsync(userId);
         Profile profile = await ProfileDefaults.GetOrCreateAsync(profileRepo, user);
 
@@ -93,6 +118,7 @@ public class ProfilesController : ControllerBase
         profile.BannerUrl = string.IsNullOrWhiteSpace(request.BannerUrl) ? null : request.BannerUrl;
         profile.ThemeJson = JsonSerializer.Serialize(request.Theme);
         profile.CustomCss = ProfileCss.Sanitize(request.CustomCss);
+        profile.StickersJson = JsonSerializer.Serialize(request.Stickers);
         profile.UpdatedDate = DateTime.Now;
         await profileRepo.UpdateAsync(profile);
 
@@ -112,23 +138,5 @@ public class ProfilesController : ControllerBase
         await profileRepo.ReplaceModulesAsync(userId, modules);
 
         return NoContent();
-    }
-
-    private async Task<ProfileStatsDto> GetStatsAsync(int userId)
-    {
-        List<int> postIds = postRepo.GetMany().Where(p => p.UserId == userId).Select(p => p.Id).ToList();
-        int likesReceived = 0;
-        foreach (int postId in postIds)
-        {
-            likesReceived += await postRepo.GetLikeCountAsync(postId);
-        }
-
-        return new ProfileStatsDto
-        {
-            PostCount = postIds.Count,
-            FollowerCount = userRepo.GetFollowers(userId).Count(),
-            FollowingCount = userRepo.GetFollowing(userId).Count(),
-            LikesReceived = likesReceived
-        };
     }
 }

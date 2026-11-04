@@ -19,3 +19,7 @@ WebAPI/wwwroot/uploads/*
 !WebAPI/wwwroot/uploads/.gitkeep
 WebAPI/profiles.json
 WebAPI/profileModules.json
+WebAPI/postMedia.json
+WebAPI/notifications.json
+WebAPI/conversations.json
+WebAPI/messages.json

@@ -3,7 +3,9 @@
 @{ ModuleInfo info = ModuleCatalog.Get(Module.Type); }
 <section class="module module-@Module.Type span-@Module.Span @ThemeCss.ModuleClasses(Module.Style) @(Selected ? "is-selected" : "") @(!Module.IsVisible ? "is-hidden" : "") @(dragOver ? "is-drag-over" : "")"
          style="@ThemeCss.ModuleVariables(Module.Style)"
+         data-index="@Index"
          draggable="@(Editing ? "true" : "false")"
+         @onclick="SelectAsync"
          @ondragstart="() => OnDragStart.InvokeAsync(Index)"
          @ondragenter="() => dragOver = Editing"
          @ondragleave="() => dragOver = false"
@@ -21,12 +23,13 @@
             <span class="spacer"></span>
             <button type="button" class="tool-btn" title="move earlier" @onclick="() => OnMove.InvokeAsync(-1)"><Icon Name="arrow-left" Size="14" /></button>
             <button type="button" class="tool-btn" title="move later" @onclick="() => OnMove.InvokeAsync(1)"><Icon Name="arrow-right" Size="14" /></button>
-            <button type="button" class="tool-btn" title="narrower" @onclick="() => OnResize.InvokeAsync(-1)"><Icon Name="minus" Size="14" /></button>
+            <button type="button" class="tool-btn module-step" title="narrower" @onclick="() => OnResize.InvokeAsync(-1)"><Icon Name="minus" Size="14" /></button>
             <span class="module-span">@Module.Span/12</span>
-            <button type="button" class="tool-btn" title="wider" @onclick="() => OnResize.InvokeAsync(1)"><Icon Name="plus" Size="14" /></button>
+            <button type="button" class="tool-btn module-step" title="wider" @onclick="() => OnResize.InvokeAsync(1)"><Icon Name="plus" Size="14" /></button>
             <button type="button" class="tool-btn" title="@(Module.IsVisible ? "hide" : "show")" @onclick="ToggleVisible"><Icon Name="@(Module.IsVisible ? "eye" : "eye-off")" Size="14" /></button>
-            <button type="button" class="tool-btn tool-btn-main" title="module settings" @onclick="() => OnSelect.InvokeAsync(Index)"><Icon Name="gear" Size="14" /></button>
+            <button type="button" class="tool-btn tool-btn-main" title="settings" @onclick="() => OnSelect.InvokeAsync(Index)"><Icon Name="gear" Size="14" /></button>
         </div>
+        <span class="module-resize" title="drag to resize" aria-hidden="true"></span>
     }
 
     <span class="hud-label module-hud">MOD.@((Index + 1).ToString("00")) // @info.Label.ToUpper()</span>
@@ -63,6 +66,14 @@
         [nameof(ProfileModuleBase.Settings)] = ModuleSettings.Parse(Module.SettingsJson),
         [nameof(ProfileModuleBase.Editing)] = Editing
     };
+
+    private async Task SelectAsync()
+    {
+        if (Editing)
+        {
+            await OnSelect.InvokeAsync(Index);
+        }
+    }
 
     private async Task DropAsync()
     {

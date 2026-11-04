@@ -47,6 +47,7 @@ public static class ThemeCss
         css.Append($"--banner-h:{CssValues.Clamp(theme.BannerHeight, 0, 520)}px;");
         css.Append($"--avatar-border:{CssValues.Clamp(theme.AvatarBorder, 0, 10)}px;");
         css.Append($"--pattern-color:{CssValues.Color(theme.PatternColor, "#1c1c22")};");
+        css.Append($"--fx:{(CssValues.Clamp(theme.EffectIntensity, 0, 100) / 100.0).ToString(CultureInfo.InvariantCulture)};");
         return css.ToString();
     }
 
@@ -101,7 +102,11 @@ public static class ThemeCss
         {
             "cards-" + CssValues.OneOf(theme.CardStyle, "solid", "solid", "glass", "outline", "brutal", "hud", "bare"),
             "avatar-" + CssValues.OneOf(theme.AvatarShape, "circle", "circle", "square", "hex", "star"),
-            "name-" + CssValues.OneOf(theme.NameAlign, "left", "left", "center", "right")
+            "name-" + CssValues.OneOf(theme.NameAlign, "left", "left", "center", "right"),
+            "layout-" + CssValues.OneOf(theme.Layout, "classic", Layouts),
+            "namefx-" + CssValues.OneOf(theme.NameStyle, "plain", NameStyles),
+            "motion-" + CssValues.OneOf(theme.ModuleMotion, "rise", Motions),
+            "fit-" + CssValues.OneOf(theme.BannerFit, "cover", "cover", "full")
         };
         if (theme.Grain) classes.Add("fx-grain");
         if (theme.Scanlines) classes.Add("fx-scanlines");
@@ -109,6 +114,23 @@ public static class ThemeCss
         if (theme.Chromatic) classes.Add("fx-chroma");
         if (theme.HudLabels) classes.Add("fx-hud");
         return string.Join(" ", classes);
+    }
+
+    public static readonly string[] Layouts = { "classic", "sidebar", "centered", "magazine", "overlay" };
+    public static readonly string[] NameStyles = { "plain", "glitch", "chrome", "outline", "neon", "typewriter" };
+    public static readonly string[] Motions = { "none", "rise", "fade", "pop", "tilt" };
+    public static readonly string[] Decorations =
+    {
+        "none", "ring", "double", "glow", "aura", "holo", "scan", "hud", "sigil", "orbit", "crown", "spark", "pixel"
+    };
+    public static readonly string[] AnimatedBackgrounds = { "none", "flow", "starfield", "dither", "grid", "rain" };
+
+    // where the avatar sits on the banner: center X/Y in % of the banner, width in % of the banner's width
+    public static string AvatarPosition(ProfileThemeDto theme)
+    {
+        return $"--ax:{CssValues.Clamp(theme.AvatarX, 0, 100)}%;" +
+               $"--ay:{CssValues.Clamp(theme.AvatarY, 0, 160)}%;" +
+               $"--aw:{CssValues.Clamp(theme.AvatarSize, 4, 45)}%;";
     }
 
     public static List<string> FontUrls(params string?[] fonts)
@@ -150,6 +172,7 @@ public static class ThemeCss
         if (display.Length > 0) css.Append($"--font-display:'{display}', sans-serif;");
         string body = CssValues.Font(style.BodyFont, "");
         if (body.Length > 0) css.Append($"--font-body:'{body}', sans-serif;");
+        if (style.Tilt is not null) css.Append($"--tilt:{CssValues.Clamp(style.Tilt.Value, -10, 10)}deg;");
         return css.ToString();
     }
 

@@ -1,0 +1,95 @@
+@page "/notifications"
+@attribute [Authorize]
+@inject INotificationService NotificationService
+@inject ActivityService Activity
+@inject ProfileCardCache CardCache
+
+<PageTitle>notifications // cybernet</PageTitle>
+
+<div class="container narrow">
+    <h1 class="display page-heading">notifications</h1>
+
+    <ErrorBanner Message="@error" />
+
+    @if (notifications is null)
+    {
+        <Loading />
+    }
+    else if (notifications.Count == 0)
+    {
+        <div class="empty-state">
+            <Icon Name="bell" Size="28" />
+            <p>nothing yet. likes, comments and new followers show up here.</p>
+        </div>
+    }
+    else
+    {
+        <ul class="notification-list">
+            @foreach (NotificationDto n in notifications)
+            {
+                <li class="notification @(n.IsRead ? "" : "is-unread")" @key="n.Id">
+                    <span class="notification-icon type-@n.Type"><Icon Name="@IconFor(n.Type)" Size="16" /></span>
+                    <div class="notification-text">
+                        <UserChip UserName="@n.ActorUserName" Card="@CardCache.Get(n.ActorId)" AvatarSize="28" ShowHandle="false" />
+                        <span>@Describe(n)</span>
+                        @if (n.PostId is not null)
+                        {
+                            <a class="notification-target" href="@TargetHref(n)">
+                                @(n.CommentExcerpt ?? n.PostTitle)
+                            </a>
+                        }
+                    </div>
+                    <span class="notification-time">@TimeFormat.Ago(n.CreatedDate)</span>
+                </li>
+            }
+        </ul>
+    }
+</div>
+
+@code {
+    [CascadingParameter] public Task<AuthenticationState> State { get; set; } = default!;
+
+    private List<NotificationDto>? notifications;
+    private string? error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            int userId = (await State).User.GetUserId()!.Value;
+            notifications = await NotificationService.GetNotificationsAsync(userId);
+            await CardCache.EnsureAsync(notifications.Select(n => n.ActorId));
+
+            // opening the page counts as reading them; the list keeps its highlight until next time
+            await NotificationService.MarkAllReadAsync(userId);
+            await Activity.RefreshAsync();
+        }
+        catch (Exception e)
+        {
+            error = e.Message;
+            notifications ??= new();
+        }
+    }
+
+    private static string TargetHref(NotificationDto n) =>
+        n.CommentId is null ? $"/posts/{n.PostId}" : $"/posts/{n.PostId}#comment-{n.CommentId}";
+
+    private static string IconFor(string type) => type switch
+    {
+        "like" or "commentLike" => "heart-fill",
+        "comment" => "comment",
+        "reply" => "reply",
+        "follow" => "user",
+        _ => "bell"
+    };
+
+    private static string Describe(NotificationDto n) => n.Type switch
+    {
+        "like" => "liked your post",
+        "commentLike" => "liked your comment",
+        "comment" => "commented on your post",
+        "reply" => "replied to you",
+        "follow" => "followed you",
+        _ => "did something"
+    };
+}

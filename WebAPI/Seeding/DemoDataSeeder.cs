@@ -20,6 +20,7 @@ public static class DemoDataSeeder
         ICommentRepository commentRepo = scope.ServiceProvider.GetRequiredService<ICommentRepository>();
         ITagRepository tagRepo = scope.ServiceProvider.GetRequiredService<ITagRepository>();
         IProfileRepository profileRepo = scope.ServiceProvider.GetRequiredService<IProfileRepository>();
+        IMessageRepository messageRepo = scope.ServiceProvider.GetRequiredService<IMessageRepository>();
 
         if (userRepo.GetMany().Any())
         {
@@ -78,6 +79,13 @@ public static class DemoDataSeeder
             "red. white. black. nothing else.", "type");
         Post garden = await AddPost(moss, 1, "pixel flowers",
             "dithered a flower into 2500 little squares. it's in my gallery.", "dither", "art");
+        await postRepo.AddMediaAsync(new PostMedia { PostId = garden.Id, Url = "/demo/pixel-bloom.svg", Kind = "image", Order = 0 });
+
+        Post dump = await AddPost(cobalt, 0, "",
+            "new sigils from this week", "sigil", "art");
+        await postRepo.AddMediaAsync(new PostMedia { PostId = dump.Id, Url = "/demo/sigil-star.svg", Kind = "image", Order = 0 });
+        await postRepo.AddMediaAsync(new PostMedia { PostId = dump.Id, Url = "/demo/orbit.svg", Kind = "image", Order = 1 });
+        await postRepo.AddMediaAsync(new PostMedia { PostId = dump.Id, Url = "/demo/hud-ring.svg", Kind = "image", Order = 2 });
 
         async Task<Comment> AddComment(User author, Post post, string body, Comment? parent = null)
         {
@@ -140,6 +148,38 @@ public static class DemoDataSeeder
             await userRepo.FollowAsync(follower.Id, following.Id);
         }
 
+        // a chat between nyx and hana, and a message request from k1ra to paperghost
+        Conversation chat = await messageRepo.AddConversationAsync(new Conversation
+        {
+            UserOneId = nyx.Id, UserTwoId = hana.Id, StartedById = nyx.Id, IsAccepted = true,
+            CreatedDate = DateTime.Now.AddDays(-2), LastMessageDate = DateTime.Now.AddHours(-3)
+        });
+        (User from, string text, int hoursAgo)[] lines =
+        {
+            (nyx, "your halftone post is so good", 30),
+            (hana, "thank you!! took forever", 29),
+            (nyx, "could you make one for my banner?", 4),
+            (hana, "yes, send me a photo", 3)
+        };
+        foreach ((User from, string text, int hoursAgo) in lines)
+        {
+            await messageRepo.AddMessageAsync(new Message
+            {
+                ConversationId = chat.Id, SenderId = from.Id, Body = text, CreatedDate = DateTime.Now.AddHours(-hoursAgo)
+            });
+        }
+
+        Conversation request = await messageRepo.AddConversationAsync(new Conversation
+        {
+            UserOneId = kira.Id, UserTwoId = paper.Id, StartedById = kira.Id, IsAccepted = false,
+            CreatedDate = DateTime.Now.AddHours(-6), LastMessageDate = DateTime.Now.AddHours(-6)
+        });
+        await messageRepo.AddMessageAsync(new Message
+        {
+            ConversationId = request.Id, SenderId = kira.Id, Body = "hey, can i use your grain texture in a poster?",
+            CreatedDate = DateTime.Now.AddHours(-6)
+        });
+
         // profiles
         await SaveProfile(profileRepo, nyx, "nyx", "moderator of the void // builds things at 3am", "/demo/sigil-star.svg",
             "/demo/banner-void.svg", ThemePresets.Create("void"), new List<ProfileModule>
@@ -150,8 +190,8 @@ public static class DemoDataSeeder
                     new { Emoji = "✦", Label = "status", Text = "debugging the network" }),
                 ProfileDefaults.Module(ProfileModuleTypes.Bio, 8, "about",
                     new { Markdown = "i run this place. i like **dithered images**, ambient music and *very* dark themes.\n\n- moderator\n- builder\n- night owl" }),
-                ProfileDefaults.Module(ProfileModuleTypes.Stats, 4, "signal", new { Layout = "tiles" }),
-                ProfileDefaults.Module(ProfileModuleTypes.LatestPosts, 8, "transmissions", new { Count = 4, ShowExcerpt = true }),
+                ProfileDefaults.Module(ProfileModuleTypes.Stats, 4, "stats", new { Layout = "tiles" }),
+                ProfileDefaults.Module(ProfileModuleTypes.LatestPosts, 8, "posts", new { Count = 4, ShowExcerpt = true }),
                 ProfileDefaults.Module(ProfileModuleTypes.Gallery, 6, "archive",
                     new { Images = new[] { "/demo/sigil-star.svg", "/demo/pixel-bloom.svg", "/demo/orbit.svg", "/demo/hud-ring.svg" }, Columns = 2, Aspect = "square" }),
                 ProfileDefaults.Module(ProfileModuleTypes.TopFriends, 6, "top friends",
@@ -161,6 +201,11 @@ public static class DemoDataSeeder
                     new { Links = new[] { new { Label = "github", Url = "https://github.com", Icon = "code" }, new { Label = "my site", Url = "https://example.com", Icon = "globe" } } }),
                 ProfileDefaults.Module(ProfileModuleTypes.TagCloud, 4, "frequencies", new { Count = 10 }),
                 ProfileDefaults.Module(ProfileModuleTypes.Followers, 4, "followers", new { Count = 12 })
+            }, stickers: new List<StickerDto>
+            {
+                new() { Kind = "glyph", Value = "star", X = 88, Y = 300, Size = 90, Rotation = 12, Color = "#ff2a4f" },
+                new() { Kind = "glyph", Value = "sparkle", X = 4, Y = 640, Size = 56, Rotation = -8 },
+                new() { Kind = "emoji", Value = "🕯️", X = 93, Y = 980, Size = 48, Rotation = 6 }
             });
 
         ProfileThemeDto paperTheme = ThemePresets.Create("paper");
@@ -233,12 +278,14 @@ public static class DemoDataSeeder
             Password = DemoPassword,
             Email = $"{userName}@cybernet.test",
             IsModerator = isModerator,
+            MessagePrivacy = "requests",
             CreatedDate = DateTime.Now.AddDays(-daysAgo)
         });
     }
 
     private static async Task SaveProfile(IProfileRepository profileRepo, User user, string displayName, string tagline,
-        string? avatarUrl, string? bannerUrl, ProfileThemeDto theme, List<ProfileModule> modules, string? customCss = null)
+        string? avatarUrl, string? bannerUrl, ProfileThemeDto theme, List<ProfileModule> modules, string? customCss = null,
+        List<StickerDto>? stickers = null)
     {
         await profileRepo.AddAsync(new Profile
         {
@@ -249,6 +296,7 @@ public static class DemoDataSeeder
             BannerUrl = bannerUrl,
             ThemeJson = JsonSerializer.Serialize(theme),
             CustomCss = customCss,
+            StickersJson = stickers is null ? null : JsonSerializer.Serialize(stickers),
             UpdatedDate = DateTime.Now
         });
 

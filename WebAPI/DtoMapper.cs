@@ -17,7 +17,8 @@ internal static class DtoMapper
             Email = user.Email,
             PhoneNumber = user.PhoneNumber,
             IsModerator = user.IsModerator,
-            CreatedDate = user.CreatedDate
+            CreatedDate = user.CreatedDate,
+            MessagePrivacy = user.MessagePrivacy ?? "requests"
         };
     }
 
@@ -74,6 +75,7 @@ internal static class DtoMapper
             Theme = ReadTheme(profile.ThemeJson),
             CustomCss = profile.CustomCss,
             Modules = modules.OrderBy(m => m.Order).Select(ToDto).ToList(),
+            Stickers = ReadStickers(profile.StickersJson),
             Stats = stats
         };
     }
@@ -118,6 +120,39 @@ internal static class DtoMapper
         }
 
         return JsonSerializer.Deserialize<ProfileThemeDto>(themeJson) ?? ThemePresets.Create(ThemePresets.Default);
+    }
+
+    public static List<StickerDto> ReadStickers(string? stickersJson)
+    {
+        if (string.IsNullOrWhiteSpace(stickersJson))
+        {
+            return new List<StickerDto>();
+        }
+
+        return JsonSerializer.Deserialize<List<StickerDto>>(stickersJson) ?? new List<StickerDto>();
+    }
+
+    public static PostMediaDto ToDto(PostMedia media)
+    {
+        return new PostMediaDto
+        {
+            Url = media.Url,
+            Kind = media.Kind
+        };
+    }
+
+    public static MessageDto ToDto(Message message)
+    {
+        return new MessageDto
+        {
+            Id = message.Id,
+            ConversationId = message.ConversationId,
+            SenderId = message.SenderId,
+            Body = message.Body,
+            MediaUrl = message.MediaUrl,
+            MediaKind = message.MediaKind,
+            CreatedDate = message.CreatedDate
+        };
     }
 
     public static void RequireNotBlank(string? value, string fieldName)

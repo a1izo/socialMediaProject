@@ -1,0 +1,55 @@
+@* Shapes that can be placed on a profile as stickers. All drawn on a 100px grid in currentColor. *@
+<svg class="sticker-glyph" viewBox="0 0 100 100" aria-hidden="true">
+    @switch (Name)
+    {
+        case "sparkle":
+            <path d="M50 4C53 34 66 47 96 50C66 53 53 66 50 96C47 66 34 53 4 50C34 47 47 34 50 4ZM82 6C83 14 86 17 94 18C86 19 83 22 82 30C81 22 78 19 70 18C78 17 81 14 82 6Z" fill="currentColor" />
+            break;
+        case "heart":
+            <path d="M50 88S8 62 8 34A21 21 0 0 1 50 24A21 21 0 0 1 92 34C92 62 50 88 50 88Z" fill="currentColor" />
+            break;
+        case "moon":
+            <path d="M66 8A44 44 0 1 0 92 64A36 36 0 1 1 66 8Z" fill="currentColor" />
+            break;
+        case "cross":
+            <path d="M42 4h16v38h38v16H58v38H42V58H4V42h38Z" fill="currentColor" />
+            break;
+        case "orbit":
+            <ellipse cx="50" cy="50" rx="46" ry="16" fill="none" stroke="currentColor" stroke-width="5" transform="rotate(-25 50 50)" />
+            <ellipse cx="50" cy="50" rx="46" ry="16" fill="none" stroke="currentColor" stroke-width="3" transform="rotate(35 50 50)" />
+            <circle cx="50" cy="50" r="8" fill="currentColor" />
+            break;
+        case "burst":
+            <path d="M50 2L58 32L86 14L68 42L98 50L68 58L86 86L58 68L50 98L42 68L14 86L32 58L2 50L32 42L14 14L42 32Z" fill="currentColor" />
+            break;
+        case "eye":
+            <path d="M4 50C20 22 80 22 96 50C80 78 20 78 4 50Z" fill="none" stroke="currentColor" stroke-width="5" />
+            <circle cx="50" cy="50" r="14" fill="currentColor" />
+            break;
+        case "flower":
+            <g fill="currentColor">
+                <circle cx="50" cy="24" r="18" /><circle cx="76" cy="50" r="18" /><circle cx="50" cy="76" r="18" /><circle cx="24" cy="50" r="18" />
+            </g>
+            <circle cx="50" cy="50" r="12" fill="var(--bg, #000)" />
+            break;
+        case "bolt":
+            <path d="M60 2L14 58H46L36 98L86 38H54Z" fill="currentColor" />
+            break;
+        case "sigil":
+            <g fill="none" stroke="currentColor" stroke-width="4">
+                <path d="M50 4V96M12 30L88 70M88 30L12 70" />
+                <circle cx="50" cy="50" r="20" />
+            </g>
+            <path d="M50 30C51 44 56 49 70 50C56 51 51 56 50 70C49 56 44 51 30 50C44 49 49 44 50 30Z" fill="currentColor" />
+            break;
+        default:
+            <path d="M50 0C54 34 66 46 100 50C66 54 54 66 50 100C46 66 34 54 0 50C34 46 46 34 50 0Z" fill="currentColor" />
+            break;
+    }
+</svg>
+
+@code {
+    public static readonly string[] Names = { "star", "sparkle", "heart", "moon", "cross", "orbit", "burst", "eye", "flower", "bolt", "sigil" };
+
+    [Parameter] public string Name { get; set; } = "star";
+}

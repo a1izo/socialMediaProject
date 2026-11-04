@@ -1,0 +1,8 @@
+@if (Count > 0)
+{
+    <span class="count-badge" aria-label="@Count unread">@(Count > 99 ? "99+" : Count.ToString())</span>
+}
+
+@code {
+    [Parameter] public int Count { get; set; }
+}

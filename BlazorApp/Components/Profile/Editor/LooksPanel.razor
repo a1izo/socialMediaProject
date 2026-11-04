@@ -1,0 +1,36 @@
+@inject ApiConfig Api
+
+<p class="ed-hint">a look changes colors, fonts, layout and effects in one click. your banner, avatar, modules and stickers stay.</p>
+<div class="look-grid">
+    @foreach (string name in ThemePresets.Names)
+    {
+        ProfileThemeDto look = ThemePresets.Apply(Profile.Theme, name);
+        <button type="button" class="look @(Profile.Theme.Preset == name ? "is-active" : "")" @onclick="() => ApplyAsync(name)" title="@name">
+            <span class="look-preview cn-themed @ThemeCss.Classes(look)" style="@ThemeCss.Variables(look) @ThemeCss.Background(look, Api)">
+                <FontLinks Urls="@ThemeCss.FontUrls(look.DisplayFont)" />
+                <span class="look-banner" style="@BannerStyle"></span>
+                <span class="look-avatar"><Avatar Url="@Profile.AvatarUrl" Name="@Profile.DisplayName" Shape="@look.AvatarShape" Size="26" /></span>
+                <span class="look-name">@Profile.DisplayName</span>
+                <span class="look-modules">
+                    <i class="module"></i><i class="module"></i><i class="module"></i>
+                </span>
+            </span>
+            <span class="look-label">@name</span>
+        </button>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public ProfileDto Profile { get; set; } = default!;
+    [Parameter] public EventCallback OnChanged { get; set; }
+
+    private string BannerStyle => CssValues.IsUrl(Profile.BannerUrl)
+        ? $"background-image:url(\"{Api.Resolve(Profile.BannerUrl)}\");"
+        : "";
+
+    private async Task ApplyAsync(string name)
+    {
+        Profile.Theme = ThemePresets.Apply(Profile.Theme, name);
+        await OnChanged.InvokeAsync();
+    }
+}

@@ -1,20 +1,6 @@
-<details class="ed-section" open>
-    <summary><Icon Name="sparkle" Size="14" /> presets</summary>
-    <p class="ed-hint">start from a preset, then tweak anything below. applying one replaces the current theme.</p>
-    <div class="preset-grid">
-        @foreach (string name in ThemePresets.Names)
-        {
-            ProfileThemeDto preset = ThemePresets.Create(name);
-            <button type="button" class="preset @(Theme.Preset == name ? "is-active" : "")" @onclick="() => OnPresetApplied.InvokeAsync(name)"
-                    style="--p-bg:@CssValues.Color(preset.Background, "#000");--p-surface:@CssValues.Color(preset.Surface, "#111");--p-text:@CssValues.Color(preset.Text, "#fff");--p-accent:@CssValues.Color(preset.Accent, "#f00");--p-accent-2:@CssValues.Color(preset.Accent2, "#00f")">
-                <span class="preset-swatch"><i></i><i></i><i></i></span>
-                <span class="preset-name">@name</span>
-            </button>
-        }
-    </div>
-</details>
+<p class="ed-hint">every value, one by one. the style tab sets most of these for you.</p>
 
-<details class="ed-section" open>
+<details class="ed-section">
     <summary><Icon Name="palette" Size="14" /> colors</summary>
     <ColorField Label="background" @bind-Value="Theme.Background" @bind-Value:after="Changed" />
     <ColorField Label="surface (cards)" @bind-Value="Theme.Surface" @bind-Value:after="Changed" />
@@ -23,7 +9,7 @@
     <ColorField Label="accent" @bind-Value="Theme.Accent" @bind-Value:after="Changed" />
     <ColorField Label="second accent" @bind-Value="Theme.Accent2" @bind-Value:after="Changed" />
     <ColorField Label="borders" @bind-Value="Theme.Border" @bind-Value:after="Changed" />
-    <p class="ed-hint">tip: add two hex digits for transparency, e.g. #12121580.</p>
+    <p class="ed-hint">add two more hex digits for transparency, like #12121580.</p>
 </details>
 
 <details class="ed-section">
@@ -61,7 +47,7 @@
     <ChoiceField Label="heading case" @bind-Value="Theme.HeadingCase" @bind-Value:after="Changed"
                  Options='new[] { ("none", "as typed"), ("upper", "UPPERCASE") }' />
     <RangeField Label="heading letter spacing" Min="-5" Max="20" @bind-Value="Theme.LetterSpacing" @bind-Value:after="Changed" />
-    <p class="ed-hint">any font from fonts.google.com works. type its exact name.</p>
+    <p class="ed-hint">type the exact name of any font on fonts.google.com.</p>
 </details>
 
 <details class="ed-section">
@@ -87,12 +73,12 @@
         <RangeField Label="sparkle density" Min="1" Max="3" @bind-Value="Theme.SparkleDensity" @bind-Value:after="Changed" />
     }
     <ToggleField Label="sparkle cursor trail" @bind-Value="Theme.SparkleTrail" @bind-Value:after="Changed" />
+    <RangeField Label="effect strength" Min="0" Max="100" Unit="%" @bind-Value="Theme.EffectIntensity" @bind-Value:after="Changed" />
 </details>
 
 @code {
     [Parameter, EditorRequired] public ProfileThemeDto Theme { get; set; } = default!;
     [Parameter] public EventCallback OnChanged { get; set; }
-    [Parameter] public EventCallback<string> OnPresetApplied { get; set; }
 
     public static readonly (string, string)[] CardStyles =
     {

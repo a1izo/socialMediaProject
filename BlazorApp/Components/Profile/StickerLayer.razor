@@ -1,0 +1,30 @@
+@inject ApiConfig Api
+
+@* Stickers float over the whole profile. In edit mode cybernet.js makes them draggable and reports
+   the new position back to the page; outside edit mode they ignore the mouse. *@
+<div class="sticker-layer @(Editing ? "is-editing" : "")" aria-hidden="true">
+    @foreach (StickerDto sticker in Stickers)
+    {
+        <div class="sticker @(sticker.Id == SelectedId ? "is-selected" : "")" data-sticker-id="@sticker.Id" @key="sticker.Id"
+             style="left:@(sticker.X.ToString(System.Globalization.CultureInfo.InvariantCulture))%;top:@(sticker.Y)px;width:@(sticker.Size)px;height:@(sticker.Size)px;--rot:@(sticker.Rotation)deg;color:@CssValues.Color(sticker.Color, "var(--accent)")">
+            @switch (sticker.Kind)
+            {
+                case "emoji":
+                    <span class="sticker-emoji" style="font-size:@(sticker.Size * 0.82)px">@sticker.Value</span>
+                    break;
+                case "image" when CssValues.IsUrl(sticker.Value):
+                    <img src="@Api.Resolve(sticker.Value)" alt="" draggable="false" />
+                    break;
+                default:
+                    <StickerGlyph Name="@sticker.Value" />
+                    break;
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public List<StickerDto> Stickers { get; set; } = new();
+    [Parameter] public bool Editing { get; set; }
+    [Parameter] public string? SelectedId { get; set; }
+}

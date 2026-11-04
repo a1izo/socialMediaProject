@@ -5,13 +5,12 @@
 @inject AuthenticationStateProvider AuthProvider
 @inject NavigationManager NavMgr
 
-<PageTitle>account // cybernet</PageTitle>
+<PageTitle>settings // cybernet</PageTitle>
 
 <div class="container narrow">
     <section class="hud-frame">
-        <span class="hud-label">ACCOUNT // @userName.ToUpper()</span>
-        <h1 class="display">account</h1>
-        <p class="muted">this is your login info. to change how your profile looks, <a href="/u/@userName?edit=true">open the profile editor</a>.</p>
+        <h1 class="display">settings</h1>
+        <p class="muted">to change how your profile looks, <a href="/u/@userName?edit=true">open the profile editor</a>.</p>
 
         @if (loading)
         {
@@ -29,13 +28,27 @@
                     <input class="input" type="email" @bind="email" />
                 </label>
                 <label class="field">
-                    <span class="field-label">phone // optional</span>
+                    <span class="field-label">phone (optional)</span>
                     <input class="input" type="tel" @bind="phone" />
                 </label>
                 <label class="field">
-                    <span class="field-label">new password // leave empty to keep</span>
+                    <span class="field-label">new password (leave empty to keep your current one)</span>
                     <input class="input" type="password" @bind="password" autocomplete="new-password" />
                 </label>
+
+                <fieldset class="field privacy-options">
+                    <legend class="field-label">who can message you</legend>
+                    @foreach ((string value, string label, string hint) in PrivacyOptions)
+                    {
+                        <label class="privacy-option @(messagePrivacy == value ? "is-active" : "")">
+                            <input type="radio" name="message-privacy" checked="@(messagePrivacy == value)" @onchange="() => messagePrivacy = value" />
+                            <span>
+                                <b>@label</b>
+                                <span class="muted small">@hint</span>
+                            </span>
+                        </label>
+                    }
+                </fieldset>
 
                 <ErrorBanner Message="@error" />
                 @if (saved)
@@ -49,8 +62,8 @@
             </form>
 
             <div class="danger-zone">
-                <span class="hud-label">DANGER ZONE</span>
-                <p class="muted small">deleting your account removes your profile. this cannot be undone.</p>
+                <span class="hud-label">delete account</span>
+                <p class="muted small">this removes your account and your profile for good.</p>
                 <ConfirmButton Class="btn btn-danger" Question="really delete your account?" OnConfirm="DeleteAsync">
                     <Icon Name="trash" Size="14" /> delete account
                 </ConfirmButton>
@@ -67,6 +80,15 @@
     private string email = "";
     private string phone = "";
     private string password = "";
+    private string messagePrivacy = "requests";
+
+    private static readonly (string, string, string)[] PrivacyOptions =
+    {
+        ("everyone", "everyone", "anyone can start a chat with you"),
+        ("requests", "everyone, with requests", "people you don't follow land in your requests first"),
+        ("following", "people I follow", "nobody else can message you"),
+        ("nobody", "nobody", "no new chats; your existing ones stay")
+    };
     private bool loading = true;
     private bool saved;
     private string? error;
@@ -80,6 +102,7 @@
             userName = user.UserName;
             email = user.Email;
             phone = user.PhoneNumber ?? "";
+            messagePrivacy = user.MessagePrivacy;
         }
         catch (Exception e)
         {
@@ -102,7 +125,8 @@
                 UserName = userName,
                 Email = email,
                 PhoneNumber = phone,
-                Password = string.IsNullOrWhiteSpace(password) ? null : password
+                Password = string.IsNullOrWhiteSpace(password) ? null : password,
+                MessagePrivacy = messagePrivacy
             });
             UserDto updated = await UserService.GetUserAsync(userId);
             await ((SimpleAuthProvider)AuthProvider).StoreUserAsync(updated);

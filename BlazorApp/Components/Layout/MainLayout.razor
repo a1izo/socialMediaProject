@@ -1,6 +1,7 @@
 ﻿@inherits LayoutComponentBase
 @implements IDisposable
 @inject ShellThemeService ShellTheme
+@inject ActivityService Activity
 @inject AuthenticationStateProvider AuthProvider
 @inject NavigationManager NavMgr
 
@@ -13,69 +14,65 @@
 
         <nav class="topnav" aria-label="main">
             <NavLink class="topnav-link" href="/" Match="NavLinkMatch.All"><Icon Name="home" Size="16" /> feed</NavLink>
-            <NavLink class="topnav-link" href="/people"><Icon Name="users" Size="16" /> people</NavLink>
+            <NavLink class="topnav-link" href="/search"><Icon Name="search" Size="16" /> search</NavLink>
             <AuthorizeView>
                 <Authorized>
-                    <NavLink class="topnav-link" href="/posts/new"><Icon Name="send" Size="16" /> transmit</NavLink>
+                    <NavLink class="topnav-link" href="/post"><Icon Name="plus" Size="16" /> post</NavLink>
+                    <NavLink class="topnav-link" href="/messages">
+                        <Icon Name="message" Size="16" /> messages
+                        <Badge Count="@(Activity.Counts.Messages + Activity.Counts.Requests)" />
+                    </NavLink>
                 </Authorized>
             </AuthorizeView>
         </nav>
 
         <div class="topbar-right">
             <button class="icon-btn" type="button" @onclick="ShellTheme.ToggleAsync"
-                    title="@(ShellTheme.Mode == "void" ? "switch to paper" : "switch to void")" aria-label="toggle light and dark mode">
+                    title="@(ShellTheme.Mode == "void" ? "light mode" : "dark mode")" aria-label="switch between light and dark mode">
                 <Icon Name="@(ShellTheme.Mode == "void" ? "sun" : "moon")" />
             </button>
             <AuthorizeView>
                 <Authorized>
+                    <NavLink class="icon-btn has-badge" href="/notifications" title="notifications" aria-label="notifications">
+                        <Icon Name="bell" />
+                        <Badge Count="@Activity.Counts.Notifications" />
+                    </NavLink>
                     <AuthorizeView Policy="@ClaimsExtensions.ModeratorPolicy" Context="modContext">
-                        <span class="mod-badge" title="you are a moderator"><Icon Name="shield" Size="14" /> mod</span>
+                        <span class="mod-badge" title="you're a moderator"><Icon Name="shield" Size="14" /> mod</span>
                     </AuthorizeView>
                     <a class="me-link" href="/u/@context.User.Identity?.Name">
                         <StarGlyph Size="10" />
                         <span>@context.User.Identity?.Name</span>
                     </a>
-                    <a class="icon-btn" href="/settings" title="account settings" aria-label="account settings"><Icon Name="gear" /></a>
+                    <a class="icon-btn" href="/settings" title="settings" aria-label="settings"><Icon Name="gear" /></a>
                     <button class="icon-btn" type="button" @onclick="LogoutAsync" title="log out" aria-label="log out"><Icon Name="logout" /></button>
                 </Authorized>
                 <NotAuthorized>
                     <a class="btn btn-sm btn-ghost" href="/login">log in</a>
-                    <a class="btn btn-sm btn-primary" href="/register">join</a>
+                    <a class="btn btn-sm btn-primary" href="/register">sign up</a>
                 </NotAuthorized>
             </AuthorizeView>
         </div>
     </header>
 
-    <aside class="hud-rail hud-rail-left" aria-hidden="true">
-        <span>CN//@DateTime.Now.ToString("yyyy.MM.dd")</span>
-        <span>55.86N 09.85E</span>
-    </aside>
-    <aside class="hud-rail hud-rail-right" aria-hidden="true">
-        <span>NODE.07 // @ShellTheme.Mode.ToUpper()</span>
-        <span>0.576 — 0.648 — 0.684</span>
-    </aside>
-
     <main class="page">
         @Body
     </main>
 
-    <footer class="hud-footer">
-        <span><StarGlyph Size="10" /> cybernet</span>
-        <span>a network of profiles you control</span>
-        <span>dnp // part 5 + 6</span>
-    </footer>
-
     <nav class="bottombar" aria-label="mobile">
         <NavLink class="bottombar-link" href="/" Match="NavLinkMatch.All"><Icon Name="home" /><span>feed</span></NavLink>
-        <NavLink class="bottombar-link" href="/people"><Icon Name="users" /><span>people</span></NavLink>
+        <NavLink class="bottombar-link" href="/search"><Icon Name="search" /><span>search</span></NavLink>
         <AuthorizeView>
             <Authorized>
-                <NavLink class="bottombar-link bottombar-main" href="/posts/new"><Icon Name="plus" /><span>post</span></NavLink>
+                <NavLink class="bottombar-link bottombar-main" href="/post"><Icon Name="plus" /><span>post</span></NavLink>
+                <NavLink class="bottombar-link has-badge" href="/messages">
+                    <Icon Name="message" /><span>messages</span>
+                    <Badge Count="@(Activity.Counts.Messages + Activity.Counts.Requests)" />
+                </NavLink>
                 <NavLink class="bottombar-link" href="@($"/u/{context.User.Identity?.Name}")"><Icon Name="user" /><span>me</span></NavLink>
-                <NavLink class="bottombar-link" href="/settings"><Icon Name="gear" /><span>account</span></NavLink>
             </Authorized>
             <NotAuthorized>
-                <NavLink class="bottombar-link bottombar-main" href="/register"><Icon Name="sparkle" /><span>join</span></NavLink>
+                <NavLink class="bottombar-link bottombar-main" href="/register"><Icon Name="sparkle" /><span>sign up</span></NavLink>
                 <NavLink class="bottombar-link" href="/login"><Icon Name="login" /><span>log in</span></NavLink>
             </NotAuthorized>
         </AuthorizeView>
@@ -87,14 +84,35 @@
     {
         if (firstRender)
         {
-            ShellTheme.Changed += OnShellChanged;
+            ShellTheme.Changed += OnChanged;
+            Activity.Changed += OnChanged;
+            AuthProvider.AuthenticationStateChanged += OnAuthChanged;
             await ShellTheme.InitializeAsync();
+            await UpdateActivityAsync(AuthProvider.GetAuthenticationStateAsync());
         }
     }
 
-    private void OnShellChanged()
+    private void OnChanged()
     {
         InvokeAsync(StateHasChanged);
+    }
+
+    private void OnAuthChanged(Task<AuthenticationState> state)
+    {
+        _ = InvokeAsync(() => UpdateActivityAsync(state));
+    }
+
+    private async Task UpdateActivityAsync(Task<AuthenticationState> state)
+    {
+        int? userId = (await state).User.GetUserId();
+        if (userId is null)
+        {
+            Activity.Stop();
+        }
+        else
+        {
+            Activity.Start(userId.Value);
+        }
     }
 
     private async Task LogoutAsync()
@@ -105,6 +123,8 @@
 
     public void Dispose()
     {
-        ShellTheme.Changed -= OnShellChanged;
+        ShellTheme.Changed -= OnChanged;
+        Activity.Changed -= OnChanged;
+        AuthProvider.AuthenticationStateChanged -= OnAuthChanged;
     }
 }

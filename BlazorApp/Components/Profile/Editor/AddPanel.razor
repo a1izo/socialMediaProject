@@ -1,0 +1,98 @@
+@inject IUploadService UploadService
+
+<div class="segmented segmented-sm add-tabs">
+    <button type="button" class="@(tab == "modules" ? "is-active" : "")" @onclick='() => tab = "modules"'>modules</button>
+    <button type="button" class="@(tab == "stickers" ? "is-active" : "")" @onclick='() => tab = "stickers"'>stickers</button>
+</div>
+
+@if (tab == "modules")
+{
+    <p class="ed-hint">new modules go to the end. drag them where you want, and drag their right edge to resize.</p>
+    <div class="catalog">
+        @foreach (ModuleInfo info in ModuleCatalog.All)
+        {
+            <button type="button" class="catalog-item" @onclick="() => OnAddModule.InvokeAsync(info.Type)">
+                <span class="catalog-icon"><Icon Name="@info.Icon" Size="18" /></span>
+                <span class="catalog-text">
+                    <span class="catalog-name">@info.Label</span>
+                    <span class="catalog-desc">@info.Description</span>
+                </span>
+                <Icon Name="plus" Size="14" Class="catalog-plus" />
+            </button>
+        }
+    </div>
+}
+else
+{
+    <p class="ed-hint">stickers float on top of your page. drag them anywhere, click one to resize or rotate it.</p>
+    <h3 class="ed-title">shapes</h3>
+    <div class="tile-grid tile-grid-4 sticker-picker">
+        @foreach (string glyph in StickerGlyph.Names)
+        {
+            <button type="button" class="tile" title="@glyph" @onclick='() => AddAsync("glyph", glyph)'>
+                <span class="sticker-preview"><StickerGlyph Name="@glyph" /></span>
+            </button>
+        }
+    </div>
+    <h3 class="ed-title">emoji</h3>
+    <div class="ed-row">
+        <input class="input input-sm" @bind="emoji" maxlength="8" placeholder="paste an emoji" />
+        <button type="button" class="btn btn-sm" @onclick='() => AddAsync("emoji", emoji)' disabled="@string.IsNullOrWhiteSpace(emoji)">add</button>
+    </div>
+    <div class="emoji-row">
+        @foreach (string e in QuickEmoji)
+        {
+            <button type="button" class="tool-btn emoji-btn" @onclick='() => AddAsync("emoji", e)'>@e</button>
+        }
+    </div>
+    <h3 class="ed-title">your own image</h3>
+    <label class="btn btn-sm">
+        <Icon Name="upload" Size="14" /> @(uploading ? "uploading" : "upload png or gif")
+        <InputFile OnChange="UploadAsync" accept="@IUploadService.ImageTypes" class="visually-hidden" />
+    </label>
+    <ErrorBanner Message="@error" />
+}
+
+@code {
+    private static readonly string[] QuickEmoji = { "✨", "💿", "🦋", "🌙", "🔥", "💀", "🌸", "⭐", "🖤", "🎧", "👾", "🕯️" };
+
+    [Parameter] public EventCallback<string> OnAddModule { get; set; }
+    [Parameter] public EventCallback<StickerDto> OnAddSticker { get; set; }
+
+    private string tab = "modules";
+    private string emoji = "";
+    private bool uploading;
+    private string? error;
+
+    private Task AddAsync(string kind, string value)
+    {
+        return OnAddSticker.InvokeAsync(new StickerDto
+        {
+            Kind = kind,
+            Value = value.Trim(),
+            X = 30 + Random.Shared.Next(0, 40),
+            Y = 160 + Random.Shared.Next(0, 240),
+            Size = kind == "image" ? 140 : 72,
+            Rotation = Random.Shared.Next(-15, 16)
+        });
+    }
+
+    private async Task UploadAsync(InputFileChangeEventArgs e)
+    {
+        error = null;
+        uploading = true;
+        try
+        {
+            UploadResultDto result = await UploadService.UploadAsync(e.File);
+            await AddAsync("image", result.Url);
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            uploading = false;
+        }
+    }
+}

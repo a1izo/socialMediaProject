@@ -4,7 +4,7 @@
 @{ List<string> images = (Settings.Images ?? new()).Where(CssValues.IsUrl).ToList(); }
 @if (images.Count == 0)
 {
-    <p class="module-empty">@(Editing ? "no images yet. upload some in the module settings." : "")</p>
+    <p class="module-empty">@(Editing ? "click here to add images." : "")</p>
 }
 else
 {

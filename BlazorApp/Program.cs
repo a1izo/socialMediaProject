@@ -24,6 +24,10 @@ builder.Services.AddScoped<ICommentService, HttpCommentService>();
 builder.Services.AddScoped<ITagService, HttpTagService>();
 builder.Services.AddScoped<IProfileService, HttpProfileService>();
 builder.Services.AddScoped<IUploadService, HttpUploadService>();
+builder.Services.AddScoped<INotificationService, HttpNotificationService>();
+builder.Services.AddScoped<IMessageService, HttpMessageService>();
+builder.Services.AddScoped<ISearchService, HttpSearchService>();
+builder.Services.AddScoped<ActivityService>();
 builder.Services.AddScoped<ProfileCardCache>();
 builder.Services.AddScoped<ShellThemeService>();
 

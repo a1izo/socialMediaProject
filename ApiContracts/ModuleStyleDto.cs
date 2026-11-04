@@ -17,4 +17,6 @@ public class ModuleStyleDto
     public string? Padding { get; set; }
     // auto | short | medium | tall
     public string? Height { get; set; }
+    // -10 to 10 degrees
+    public int? Tilt { get; set; }
 }

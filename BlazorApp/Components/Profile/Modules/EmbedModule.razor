@@ -3,7 +3,7 @@
 @{ string? embedUrl = Embeds.ToEmbedUrl(Settings.Url); }
 @if (embedUrl is null)
 {
-    <p class="module-empty">@(Editing ? "paste a youtube or spotify link in the module settings." : "")</p>
+    <p class="module-empty">@(Editing ? "click here to add a youtube or spotify link." : "")</p>
 }
 else
 {

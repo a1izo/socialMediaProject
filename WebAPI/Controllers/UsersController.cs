@@ -3,6 +3,7 @@ using Entities;
 using Microsoft.AspNetCore.Mvc;
 using RepositoryContracts;
 using WebAPI.Profiles;
+using WebAPI.Services;
 
 namespace WebAPI.Controllers;
 
@@ -11,12 +12,16 @@ namespace WebAPI.Controllers;
 public class UsersController : ControllerBase
 {
     private readonly IUserRepository userRepo;
-    private readonly IProfileRepository profileRepo;
+    private static readonly string[] messagePrivacyOptions = { "everyone", "requests", "following", "nobody" };
 
-    public UsersController(IUserRepository userRepo, IProfileRepository profileRepo)
+    private readonly IProfileRepository profileRepo;
+    private readonly Notifier notifier;
+
+    public UsersController(IUserRepository userRepo, IProfileRepository profileRepo, Notifier notifier)
     {
         this.userRepo = userRepo;
         this.profileRepo = profileRepo;
+        this.notifier = notifier;
     }
 
     [HttpPost]
@@ -35,7 +40,8 @@ public class UsersController : ControllerBase
             Email = request.Email,
             PhoneNumber = string.IsNullOrWhiteSpace(request.PhoneNumber) ? null : request.PhoneNumber,
             IsModerator = false,
-            CreatedDate = DateTime.Now
+            CreatedDate = DateTime.Now,
+            MessagePrivacy = "requests"
         };
         User created = await userRepo.AddAsync(user);
         await ProfileDefaults.CreateAsync(profileRepo, created);
@@ -59,6 +65,16 @@ public class UsersController : ControllerBase
         if (!string.IsNullOrWhiteSpace(request.Password))
         {
             user.Password = request.Password;
+        }
+
+        if (request.MessagePrivacy is not null)
+        {
+            if (!messagePrivacyOptions.Contains(request.MessagePrivacy))
+            {
+                throw new ArgumentException($"Message privacy must be one of: {string.Join(", ", messagePrivacyOptions)}.");
+            }
+
+            user.MessagePrivacy = request.MessagePrivacy;
         }
 
         await userRepo.UpdateAsync(user);
@@ -126,6 +142,7 @@ public class UsersController : ControllerBase
         await userRepo.GetSingleAsync(id);
         await userRepo.GetSingleAsync(request.FollowingId);
         await userRepo.FollowAsync(id, request.FollowingId);
+        await notifier.NotifyAsync(request.FollowingId, id, Notifier.Follow);
         return NoContent();
     }
 
@@ -133,6 +150,7 @@ public class UsersController : ControllerBase
     public async Task<ActionResult> Unfollow([FromRoute] int id, [FromRoute] int followingId)
     {
         await userRepo.UnfollowAsync(id, followingId);
+        await notifier.RetractAsync(followingId, id, Notifier.Follow);
         return NoContent();
     }
 

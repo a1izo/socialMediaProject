@@ -240,71 +240,11 @@
     background: var(--accent-2);
 }
 
-/* ---------- side rails with HUD coordinates ---------- */
-
-.hud-rail {
-    position: fixed;
-    top: 50%;
-    z-index: 5;
-    display: none;
-    gap: var(--space-6);
-    font-family: var(--font-mono);
-    font-size: 0.62rem;
-    letter-spacing: 0.18em;
-    color: var(--muted);
-    opacity: 0.6;
-    pointer-events: none;
-    writing-mode: vertical-rl;
-    transform: translateY(-50%);
-}
-
-.hud-rail-left {
-    left: 14px;
-    transform: translateY(-50%) rotate(180deg);
-}
-
-.hud-rail-right {
-    right: 14px;
-}
-
-.hud-rail::before {
-    content: "";
-    width: 1px;
-    height: 80px;
-    background: var(--line);
-}
-
-@media (min-width: 1280px) {
-    .hud-rail {
-        display: flex;
-    }
-}
-
-/* ---------- page + footer ---------- */
+/* ---------- page ---------- */
 
 .page {
     flex: 1;
     position: relative;
-}
-
-.hud-footer {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-5);
-    justify-content: space-between;
-    padding: var(--space-4) var(--space-5);
-    border-top: 1px solid var(--line);
-    font-family: var(--font-mono);
-    font-size: 0.68rem;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--muted);
-}
-
-.hud-footer span {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
 }
 
 /* ---------- mobile bottom bar ---------- */
@@ -326,10 +266,6 @@
     .me-link span,
     .mod-badge {
         display: none;
-    }
-
-    .hud-footer {
-        padding-bottom: 84px;
     }
 
     .bottombar {
@@ -373,4 +309,16 @@
     .bottombar-main.active {
         color: var(--on-accent);
     }
+}
+
+@media (max-width: 760px) {
+    .page {
+        padding-bottom: 72px;
+    }
+}
+
+/* on a profile, the profile's own grain and scanline settings take over */
+.shell:has(.profile-root) .shell-grain,
+.shell:has(.profile-root) .shell-scan {
+    display: none;
 }

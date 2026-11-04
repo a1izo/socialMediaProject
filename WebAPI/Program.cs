@@ -2,6 +2,7 @@ using FileRepositories;
 using RepositoryContracts;
 using WebAPI.Middleware;
 using WebAPI.Seeding;
+using WebAPI.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,6 +14,12 @@ builder.Services.AddScoped<IUserRepository, UserFileRepository>();
 builder.Services.AddScoped<IPostRepository, PostFileRepository>();
 builder.Services.AddScoped<ICommentRepository, CommentFileRepository>();
 builder.Services.AddScoped<IProfileRepository, ProfileFileRepository>();
+builder.Services.AddScoped<INotificationRepository, NotificationFileRepository>();
+builder.Services.AddScoped<IMessageRepository, MessageFileRepository>();
+
+builder.Services.AddScoped<PostDtoBuilder>();
+builder.Services.AddScoped<ProfileCardBuilder>();
+builder.Services.AddScoped<Notifier>();
 
 builder.Services.AddTransient<GlobalExceptionHandlerMiddleware>();
 

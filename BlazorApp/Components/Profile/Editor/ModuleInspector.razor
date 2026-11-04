@@ -189,7 +189,7 @@
 
 <details class="ed-section">
     <summary><Icon Name="palette" Size="14" /> style overrides</summary>
-    <p class="ed-hint">empty fields inherit from the theme.</p>
+    <p class="ed-hint">leave a field empty to use your theme's value.</p>
     <ColorField Label="surface" AllowInherit="true" Value="@Module.Style.Surface" ValueChanged="v => SetStyle(() => Module.Style.Surface = v)" />
     <ColorField Label="text" AllowInherit="true" Value="@Module.Style.Text" ValueChanged="v => SetStyle(() => Module.Style.Text = v)" />
     <ColorField Label="accent" AllowInherit="true" Value="@Module.Style.Accent" ValueChanged="v => SetStyle(() => Module.Style.Accent = v)" />
@@ -211,6 +211,7 @@
     {
         <RangeField Label="glow" Min="0" Max="60" Unit="px" Value="@Module.Style.GlowStrength.Value" ValueChanged="v => SetStyle(() => Module.Style.GlowStrength = v)" />
     }
+    <RangeField Label="tilt" Min="-10" Max="10" Unit="°" Value="@(Module.Style.Tilt ?? 0)" ValueChanged='v => SetStyle(() => Module.Style.Tilt = v == 0 ? null : v)' />
     <FontField Label="display font" AllowInherit="true" Value="@Module.Style.DisplayFont" ValueChanged="v => SetStyle(() => Module.Style.DisplayFont = v)" />
     <FontField Label="body font" AllowInherit="true" Value="@Module.Style.BodyFont" ValueChanged="v => SetStyle(() => Module.Style.BodyFont = v)" />
 </details>

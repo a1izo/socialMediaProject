@@ -13,14 +13,16 @@ public class HttpUploadService : IUploadService
         this.client = client;
     }
 
-    public async Task<string> UploadImageAsync(IBrowserFile file)
+    public async Task<UploadResultDto> UploadAsync(IBrowserFile file)
     {
-        if (file.Size > IUploadService.MaxFileSize)
+        bool isVideo = file.ContentType.StartsWith("video/");
+        long limit = isVideo ? IUploadService.MaxVideoSize : IUploadService.MaxImageSize;
+        if (file.Size > limit)
         {
-            throw new Exception("Images can be at most 5 MB.");
+            throw new Exception(isVideo ? "Videos can be at most 50 MB." : "Images can be at most 5 MB.");
         }
 
-        await using Stream stream = file.OpenReadStream(IUploadService.MaxFileSize);
+        await using Stream stream = file.OpenReadStream(limit);
         using StreamContent fileContent = new(stream);
         fileContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
 
@@ -28,7 +30,6 @@ public class HttpUploadService : IUploadService
         form.Add(fileContent, "file", file.Name);
 
         HttpResponseMessage httpResponse = await client.PostAsync("uploads", form);
-        UploadResultDto result = await HttpResponseReader.ReadAsync<UploadResultDto>(httpResponse);
-        return result.Url;
+        return await HttpResponseReader.ReadAsync<UploadResultDto>(httpResponse);
     }
 }

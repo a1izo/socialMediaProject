@@ -5,7 +5,7 @@
 @inject ProfileCardCache CardCache
 @inject NavigationManager NavMgr
 
-<PageTitle>@(post?.Title ?? "post") // cybernet</PageTitle>
+<PageTitle>@(string.IsNullOrWhiteSpace(post?.Title) ? $"post by {post?.AuthorUserName}" : post.Title) // cybernet</PageTitle>
 
 <div class="container narrow">
     <a class="back-link" href="/"><Icon Name="arrow-left" Size="14" /> feed</a>
@@ -19,7 +19,7 @@
     else if (post is not null)
     {
         <article class="post-full hud-frame">
-            <span class="hud-label">POST.@post.Id.ToString("000") // @TimeFormat.Stamp(post.CreatedDate)</span>
+            <span class="hud-label">@TimeFormat.Stamp(post.CreatedDate)</span>
 
             <div class="post-full-author">
                 <UserChip UserName="@post.AuthorUserName" Card="@CardCache.Get(post.UserId)" AvatarSize="40" />
@@ -29,27 +29,31 @@
             {
                 <div class="form">
                     <label class="field">
-                        <span class="field-label">title</span>
+                        <span class="field-label">title (optional)</span>
                         <input class="input" @bind="editTitle" @bind:event="oninput" maxlength="140" />
                     </label>
                     <label class="field">
-                        <span class="field-label">body // markdown</span>
+                        <span class="field-label">text</span>
                         <textarea class="input" rows="8" @bind="editBody" @bind:event="oninput"></textarea>
                     </label>
                     <label class="field">
-                        <span class="field-label">tags // comma separated</span>
+                        <span class="field-label">tags, separated by commas</span>
                         <input class="input" @bind="editTags" @bind:event="oninput" placeholder="art, dither, y2k" />
                     </label>
                     <div class="row gap-sm">
-                        <button class="btn btn-primary" type="button" @onclick="SaveEditAsync" disabled="@(string.IsNullOrWhiteSpace(editTitle) || string.IsNullOrWhiteSpace(editBody))">save</button>
+                        <button class="btn btn-primary" type="button" @onclick="SaveEditAsync" disabled="@(string.IsNullOrWhiteSpace(editTitle) && string.IsNullOrWhiteSpace(editBody) && post.Media.Count == 0)">save</button>
                         <button class="btn" type="button" @onclick="() => editing = false">cancel</button>
                     </div>
                 </div>
             }
             else
             {
-                <h1 class="display post-full-title">@post.Title</h1>
+                @if (!string.IsNullOrWhiteSpace(post.Title))
+                {
+                    <h1 class="display post-full-title">@post.Title</h1>
+                }
                 <MarkdownView Text="@post.Body" Class="post-full-body" />
+                <MediaGrid Media="post.Media" />
                 <div class="tag-row">
                     @foreach (TagDto tag in post.Tags)
                     {
@@ -76,19 +80,19 @@
         </article>
 
         <section class="comments" id="comments">
-            <h2 class="section-title"><span class="hud-label">THREAD</span> comments <span class="count">@comments.Count</span></h2>
+            <h2 class="section-title">comments <span class="count">@comments.Count</span></h2>
 
             <AuthorizeView>
                 <Authorized>
                     <div class="comment-form comment-form-main">
-                        <textarea class="input" rows="3" placeholder="add to the thread. markdown works." @bind="newComment" @bind:event="oninput"></textarea>
+                        <textarea class="input" rows="3" placeholder="write a comment" @bind="newComment" @bind:event="oninput"></textarea>
                         <button class="btn btn-primary" type="button" @onclick="AddCommentAsync" disabled="@string.IsNullOrWhiteSpace(newComment)">
                             <Icon Name="send" Size="14" /> comment
                         </button>
                     </div>
                 </Authorized>
                 <NotAuthorized>
-                    <p class="muted"><a href="/login">log in</a> to join the thread.</p>
+                    <p class="muted"><a href="/login">log in</a> to comment.</p>
                 </NotAuthorized>
             </AuthorizeView>
 

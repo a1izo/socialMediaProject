@@ -7,19 +7,34 @@
         {
             <UserChip UserName="@Post.AuthorUserName" Card="Card" />
         }
-        <span class="post-card-time" title="@TimeFormat.Stamp(Post.CreatedDate)">@TimeFormat.Ago(Post.CreatedDate)</span>
+        <a class="post-card-time" href="/posts/@Post.Id" title="@TimeFormat.Stamp(Post.CreatedDate)">@TimeFormat.Ago(Post.CreatedDate)</a>
     </header>
 
-    <a class="post-card-title" href="/posts/@Post.Id">@Post.Title</a>
-
-    @if (ShowExcerpt)
+    @if (!string.IsNullOrWhiteSpace(Post.Title))
     {
-        <p class="post-card-excerpt">@Markdown.ToPlainText(Post.Body, Compact ? 120 : 240)</p>
+        <a class="post-card-title" href="/posts/@Post.Id">@Post.Title</a>
+    }
+
+    @if (ShowExcerpt && !string.IsNullOrWhiteSpace(Post.Body))
+    {
+        if (string.IsNullOrWhiteSpace(Post.Title))
+        {
+            <a class="post-card-text" href="/posts/@Post.Id">@Markdown.ToPlainText(Post.Body, Compact ? 160 : 320)</a>
+        }
+        else
+        {
+            <p class="post-card-excerpt">@Markdown.ToPlainText(Post.Body, Compact ? 120 : 240)</p>
+        }
+    }
+
+    @if (!Compact || Post.Media.Count > 0)
+    {
+        <MediaGrid Media="Post.Media" />
     }
 
     <footer class="post-card-foot">
         <LikeButton Liked="@IsLiked" Count="@Post.LikeCount" Busy="@busy" OnToggle="ToggleLikeAsync" />
-        <a class="post-card-stat" href="/posts/@Post.Id#comments">
+        <a class="post-card-stat" href="/posts/@Post.Id#comments" title="comments">
             <Icon Name="comment" Size="16" />
             <span>@Post.CommentCount</span>
         </a>

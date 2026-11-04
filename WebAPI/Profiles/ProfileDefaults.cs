@@ -19,16 +19,16 @@ internal static class ProfileDefaults
         {
             UserId = user.Id,
             DisplayName = user.UserName,
-            Tagline = "new signal on the network",
+            Tagline = null,
             ThemeJson = JsonSerializer.Serialize(ThemePresets.Create(ThemePresets.Default)),
             UpdatedDate = DateTime.Now
         });
 
         await profileRepo.ReplaceModulesAsync(user.Id, new List<ProfileModule>
         {
-            Module(ProfileModuleTypes.Bio, 8, "about", new { Markdown = "hello, cybernet. this is my corner of the network." }),
-            Module(ProfileModuleTypes.Stats, 4, "signal", new { Layout = "tiles" }),
-            Module(ProfileModuleTypes.LatestPosts, 12, "transmissions", new { Count = 5, ShowExcerpt = true })
+            Module(ProfileModuleTypes.Bio, 8, "about", new { Markdown = "hi! click customize to make this page yours." }),
+            Module(ProfileModuleTypes.Stats, 4, "stats", new { Layout = "tiles" }),
+            Module(ProfileModuleTypes.LatestPosts, 12, "posts", new { Count = 5, ShowExcerpt = true })
         });
 
         return profile;

@@ -9,4 +9,5 @@ public class UpdateProfileDto
     public ProfileThemeDto Theme { get; set; } = new();
     public string? CustomCss { get; set; }
     public List<ProfileModuleDto> Modules { get; set; } = new();
+    public List<StickerDto> Stickers { get; set; } = new();
 }

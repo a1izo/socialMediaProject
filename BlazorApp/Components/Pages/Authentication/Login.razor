@@ -9,7 +9,6 @@
     <AuthorizeView>
         <NotAuthorized>
             <section class="hud-frame auth-card">
-                <span class="hud-label">AUTH // HANDSHAKE</span>
                 <h1 class="display">log in</h1>
                 <form class="form" @onsubmit="LoginAsync" @onsubmit:preventDefault>
                     <label class="field">
@@ -28,14 +27,13 @@
                         <Icon Name="login" Size="16" /> log in
                     </button>
                 </form>
-                <p class="muted small">new here? <a href="/register">claim your node</a>. demo accounts: nyx, paperghost, cobalt_exe, hana_dots, k1ra, moss.</p>
+                <p class="muted small">no account? <a href="/register">sign up</a>.</p>
             </section>
         </NotAuthorized>
         <Authorized>
             <section class="hud-frame auth-card">
-                <span class="hud-label">AUTH // OK</span>
-                <h1 class="display">hello, @context.User.Identity?.Name</h1>
-                <p class="muted">you are already logged in.</p>
+                <h1 class="display">you're logged in</h1>
+                <p class="muted">as @context.User.Identity?.Name.</p>
                 <a class="btn btn-primary" href="/">go to the feed</a>
             </section>
         </Authorized>

@@ -1,0 +1,368 @@
+@page "/messages"
+@page "/messages/{Id:int}"
+@attribute [Authorize]
+@implements IDisposable
+@inject IMessageService MessageService
+@inject IUploadService UploadService
+@inject ActivityService Activity
+@inject ProfileCardCache CardCache
+@inject ApiConfig Api
+@inject IJSRuntime Js
+@inject NavigationManager NavMgr
+
+<PageTitle>messages // cybernet</PageTitle>
+
+<div class="messages @(Id is null ? "show-list" : "show-thread")">
+    <aside class="chat-list">
+        <div class="chat-list-head">
+            <h1 class="chat-heading">messages</h1>
+            <div class="segmented segmented-sm">
+                <button type="button" class="@(tab == "chats" ? "is-active" : "")" @onclick='() => tab = "chats"'>chats</button>
+                <button type="button" class="@(tab == "requests" ? "is-active" : "")" @onclick='() => tab = "requests"'>
+                    requests <Badge Count="@conversations.Count(c => c.Status == "request")" />
+                </button>
+            </div>
+        </div>
+
+        @{ List<ConversationDto> shown = conversations.Where(c => tab == "requests" ? c.Status == "request" : c.Status != "request").ToList(); }
+        @if (!loaded)
+        {
+            <Loading />
+        }
+        else if (shown.Count == 0)
+        {
+            <p class="chat-empty muted small">
+                @(tab == "requests" ? "no requests. people you don't follow land here first." : "no chats yet. open someone's profile and press message.")
+            </p>
+        }
+        else
+        {
+            <ul>
+                @foreach (ConversationDto c in shown)
+                {
+                    ProfileCardDto? card = CardCache.Get(c.OtherUserId);
+                    <li @key="c.Id">
+                        <a class="chat-row @(c.Id == Id ? "is-active" : "") @(c.UnreadCount > 0 ? "is-unread" : "")" href="/messages/@c.Id">
+                            <Avatar Url="@card?.AvatarUrl" Name="@(card?.DisplayName ?? c.OtherUserName)" Shape="@card?.Theme.AvatarShape" Size="40" />
+                            <span class="chat-row-text">
+                                <span class="chat-row-name">@(card?.DisplayName ?? c.OtherUserName)</span>
+                                <span class="chat-row-last">@(c.Status == "pending" ? "waiting for them to accept" : c.LastMessage ?? "say hi")</span>
+                            </span>
+                            <span class="chat-row-meta">
+                                <span>@TimeFormat.Ago(c.LastMessageDate)</span>
+                                <Badge Count="@c.UnreadCount" />
+                            </span>
+                        </a>
+                    </li>
+                }
+            </ul>
+        }
+    </aside>
+
+    <section class="chat-thread">
+        @if (Id is null)
+        {
+            <div class="chat-placeholder">
+                <Icon Name="message" Size="32" />
+                <p class="muted">pick a chat on the left.</p>
+            </div>
+        }
+        else if (current is null)
+        {
+            <ErrorBanner Message="@error" />
+            if (error is null)
+            {
+                <Loading />
+            }
+        }
+        else
+        {
+            ProfileCardDto? other = CardCache.Get(current.OtherUserId);
+            <header class="chat-thread-head">
+                <a class="icon-btn chat-back" href="/messages" aria-label="back to chats"><Icon Name="arrow-left" /></a>
+                <UserChip UserName="@current.OtherUserName" Card="other" AvatarSize="32" />
+                <span class="spacer"></span>
+                <ConfirmButton Question="delete this chat for both of you?" OnConfirm="DeleteAsync" Title="delete chat">
+                    <Icon Name="trash" Size="14" />
+                </ConfirmButton>
+            </header>
+
+            if (current.Status == "request")
+            {
+                <div class="chat-request">
+                    <p><b>@current.OtherUserName</b> wants to message you. accept to move this to your chats, or decline to delete it.</p>
+                    <div class="row gap-sm">
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="AcceptAsync">accept</button>
+                        <button type="button" class="btn btn-sm btn-danger" @onclick="DeleteAsync">decline</button>
+                    </div>
+                </div>
+            }
+            else if (current.Status == "pending")
+            {
+                <div class="chat-request muted small">your message is waiting in @current.OtherUserName's requests.</div>
+            }
+
+            <div class="chat-messages" id="chat-messages">
+                @if (messages.Count == 0)
+                {
+                    <p class="chat-empty muted small">no messages yet.</p>
+                }
+                @foreach (MessageDto m in messages)
+                {
+                    bool mine = m.SenderId == userId;
+                    <div class="bubble @(mine ? "is-mine" : "")" @key="m.Id">
+                        @if (!string.IsNullOrWhiteSpace(m.MediaUrl))
+                        {
+                            if (m.MediaKind == "video")
+                            {
+                                <video src="@Api.Resolve(m.MediaUrl)" controls playsinline preload="metadata"></video>
+                            }
+                            else
+                            {
+                                <img src="@Api.Resolve(m.MediaUrl)" alt="" loading="lazy" />
+                            }
+                        }
+                        @if (!string.IsNullOrWhiteSpace(m.Body))
+                        {
+                            <span class="bubble-text">@m.Body</span>
+                        }
+                        <span class="bubble-time">@m.CreatedDate.ToString("HH:mm")</span>
+                    </div>
+                }
+            </div>
+
+            <ErrorBanner Message="@error" />
+
+            <form class="chat-compose" @onsubmit="SendAsync" @onsubmit:preventDefault>
+                @if (attachment is not null)
+                {
+                    <span class="chat-attachment">
+                        <img src="@Api.Resolve(attachment.Url)" alt="" />
+                        <button type="button" class="tool-btn" title="remove" @onclick="() => attachment = null"><Icon Name="x" Size="12" /></button>
+                    </span>
+                }
+                <label class="icon-btn" title="attach an image or gif">
+                    <Icon Name="image" />
+                    <InputFile OnChange="AttachAsync" accept="@IUploadService.ImageTypes" class="visually-hidden" />
+                </label>
+                <input class="input" placeholder="@(uploading ? "uploading…" : "message")" @bind="draft" @bind:event="oninput" maxlength="2000" autocomplete="off" />
+                <button type="submit" class="btn btn-primary" disabled="@(sending || uploading || (string.IsNullOrWhiteSpace(draft) && attachment is null))">
+                    <Icon Name="send" Size="16" />
+                </button>
+            </form>
+        }
+    </section>
+</div>
+
+@code {
+    [Parameter] public int? Id { get; set; }
+
+    [CascadingParameter] public Task<AuthenticationState> State { get; set; } = default!;
+
+    private List<ConversationDto> conversations = new();
+    private ConversationDto? current;
+    private List<MessageDto> messages = new();
+    private int userId;
+    private string tab = "chats";
+    private string draft = "";
+    private UploadResultDto? attachment;
+    private bool loaded;
+    private bool sending;
+    private bool uploading;
+    private bool scrollToEnd;
+    private string? error;
+    private int? openedId;
+    private CancellationTokenSource? polling;
+
+    protected override async Task OnInitializedAsync()
+    {
+        userId = (await State).User.GetUserId()!.Value;
+        polling = new CancellationTokenSource();
+        _ = PollAsync(polling.Token);
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Id == openedId && loaded)
+        {
+            return;
+        }
+
+        openedId = Id;
+        current = null;
+        messages = new();
+        error = null;
+        await LoadListAsync();
+        if (Id is not null)
+        {
+            await LoadThreadAsync();
+            tab = current?.Status == "request" ? "requests" : "chats";
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (scrollToEnd)
+        {
+            scrollToEnd = false;
+            try
+            {
+                await Js.InvokeVoidAsync("cybernet.scrollToBottom", "chat-messages");
+            }
+            catch (JSDisconnectedException)
+            {
+                // gone
+            }
+        }
+    }
+
+    private async Task LoadListAsync()
+    {
+        try
+        {
+            conversations = await MessageService.GetConversationsAsync(userId);
+            await CardCache.EnsureAsync(conversations.Select(c => c.OtherUserId));
+        }
+        catch (Exception e)
+        {
+            error = e.Message;
+        }
+        finally
+        {
+            loaded = true;
+        }
+    }
+
+    private async Task LoadThreadAsync()
+    {
+        try
+        {
+            current = await MessageService.GetConversationAsync(Id!.Value, userId);
+            List<MessageDto> fresh = await MessageService.GetMessagesAsync(Id.Value, userId);
+            if (fresh.Count != messages.Count)
+            {
+                scrollToEnd = true;
+            }
+
+            messages = fresh;
+            await Activity.RefreshAsync();
+        }
+        catch (Exception e)
+        {
+            error = e.Message;
+        }
+    }
+
+    // new messages show up within a couple of seconds
+    private async Task PollAsync(CancellationToken token)
+    {
+        using PeriodicTimer timer = new(TimeSpan.FromSeconds(2.5));
+        try
+        {
+            while (await timer.WaitForNextTickAsync(token))
+            {
+                await InvokeAsync(async () =>
+                {
+                    await LoadListAsync();
+                    if (Id is not null && current is not null)
+                    {
+                        await LoadThreadAsync();
+                    }
+
+                    StateHasChanged();
+                });
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // left the page
+        }
+    }
+
+    private async Task AttachAsync(InputFileChangeEventArgs e)
+    {
+        uploading = true;
+        error = null;
+        try
+        {
+            attachment = await UploadService.UploadAsync(e.File);
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            uploading = false;
+        }
+    }
+
+    private async Task SendAsync()
+    {
+        if (current is null || (string.IsNullOrWhiteSpace(draft) && attachment is null))
+        {
+            return;
+        }
+
+        sending = true;
+        error = null;
+        try
+        {
+            MessageDto sent = await MessageService.SendMessageAsync(current.Id, new SendMessageDto
+            {
+                SenderId = userId,
+                Body = draft,
+                MediaUrl = attachment?.Url,
+                MediaKind = attachment?.Kind
+            });
+            messages.Add(sent);
+            draft = "";
+            attachment = null;
+            scrollToEnd = true;
+            await LoadListAsync();
+            current = conversations.FirstOrDefault(c => c.Id == current.Id) ?? current;
+        }
+        catch (Exception e)
+        {
+            error = e.Message;
+        }
+        finally
+        {
+            sending = false;
+        }
+    }
+
+    private async Task AcceptAsync()
+    {
+        try
+        {
+            await MessageService.AcceptRequestAsync(current!.Id, userId);
+            tab = "chats";
+            await LoadThreadAsync();
+            await LoadListAsync();
+        }
+        catch (Exception e)
+        {
+            error = e.Message;
+        }
+    }
+
+    private async Task DeleteAsync()
+    {
+        try
+        {
+            await MessageService.DeleteConversationAsync(current!.Id, userId);
+            await Activity.RefreshAsync();
+            NavMgr.NavigateTo("/messages");
+        }
+        catch (Exception e)
+        {
+            error = e.Message;
+        }
+    }
+
+    public void Dispose()
+    {
+        polling?.Cancel();
+    }
+}

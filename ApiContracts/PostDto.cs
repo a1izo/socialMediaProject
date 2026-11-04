@@ -12,6 +12,7 @@ public class PostDto
     public int CommentCount { get; set; }
     public List<int> LikedByUserIds { get; set; } = new();
     public List<TagDto> Tags { get; set; } = new();
+    public List<PostMediaDto> Media { get; set; } = new();
 
     public List<CommentDto>? Comments { get; set; }
 }

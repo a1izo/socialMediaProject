@@ -1,0 +1,28 @@
+<p class="ed-hint">drag the sticker on your page to move it.</p>
+<RangeField Label="size" Min="12" Max="600" Step="4" Unit="px" @bind-Value="Sticker.Size" @bind-Value:after="Changed" />
+<RangeField Label="rotation" Min="-180" Max="180" Unit="°" @bind-Value="Sticker.Rotation" @bind-Value:after="Changed" />
+@if (Sticker.Kind == "glyph")
+{
+    <ColorField Label="color" AllowInherit="true" Value="@Sticker.Color" ValueChanged="SetColor" />
+}
+<div class="ed-actions">
+    <button type="button" class="btn btn-sm" @onclick="OnBringToFront"><Icon Name="layers" Size="14" /> to front</button>
+    <button type="button" class="btn btn-sm" @onclick="OnDuplicate"><Icon Name="plus" Size="14" /> copy</button>
+    <button type="button" class="btn btn-sm btn-danger" @onclick="OnDelete"><Icon Name="trash" Size="14" /> remove</button>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public StickerDto Sticker { get; set; } = default!;
+    [Parameter] public EventCallback OnChanged { get; set; }
+    [Parameter] public EventCallback OnDelete { get; set; }
+    [Parameter] public EventCallback OnDuplicate { get; set; }
+    [Parameter] public EventCallback OnBringToFront { get; set; }
+
+    private Task Changed() => OnChanged.InvokeAsync();
+
+    private Task SetColor(string? color)
+    {
+        Sticker.Color = color;
+        return Changed();
+    }
+}

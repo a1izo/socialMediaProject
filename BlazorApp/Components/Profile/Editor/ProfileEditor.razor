@@ -1,31 +1,39 @@
-@* The editing drawer. It works directly on the working copy of the profile; every change
-   calls OnChanged so the page re-renders and the preview updates live. *@
+@* The editing drawer. It works directly on the working copy of the profile; every change calls
+   OnChanged so the page re-renders and the preview updates while you edit. *@
 <aside class="editor-drawer" aria-label="profile editor">
     <header class="editor-drawer-head">
-        <span class="hud-label">@Title</span>
-        <button type="button" class="icon-btn" title="close panel" @onclick="OnClose"><Icon Name="x" /></button>
+        <span class="editor-drawer-title">@Title</span>
+        <button type="button" class="icon-btn" title="close" @onclick="OnClose"><Icon Name="x" /></button>
     </header>
     <div class="editor-drawer-body">
         @switch (Panel)
         {
-            case "theme":
-                <ThemePanel Theme="Profile.Theme" OnChanged="OnChanged" OnPresetApplied="ApplyPreset" />
+            case "looks":
+                <LooksPanel Profile="Profile" OnChanged="OnChanged" />
                 break;
-            case "header":
-                <HeaderPanel Profile="Profile" OnChanged="OnChanged" />
+            case "style":
+                <StylePanel Profile="Profile" Section="@StyleSection" SectionChanged="StyleSectionChanged" OnChanged="OnChanged" />
                 break;
             case "add":
-                <AddModulePanel OnAdd="OnAddModule" />
+                <AddPanel OnAddModule="OnAddModule" OnAddSticker="OnAddSticker" />
                 break;
-            case "css":
-                <CssPanel Profile="Profile" OnChanged="OnChanged" />
+            case "advanced":
+                <details class="ed-section" open>
+                    <summary><Icon Name="css" Size="14" /> custom css</summary>
+                    <CssPanel Profile="Profile" OnChanged="OnChanged" />
+                </details>
+                <ThemePanel Theme="Profile.Theme" OnChanged="OnChanged" />
                 break;
             case "module" when SelectedModule is not null:
                 <ModuleInspector @key="SelectedModule" Module="SelectedModule" Profile="Profile" CurrentUserId="CurrentUserId"
                                  OnChanged="OnChanged" OnDelete="OnDeleteModule" OnDuplicate="OnDuplicateModule" />
                 break;
+            case "sticker" when SelectedSticker is not null:
+                <StickerInspector @key="SelectedSticker" Sticker="SelectedSticker" OnChanged="OnChanged"
+                                  OnDelete="OnDeleteSticker" OnDuplicate="OnDuplicateSticker" OnBringToFront="OnStickerToFront" />
+                break;
             default:
-                <p class="muted small">pick a module's gear icon to edit it.</p>
+                <p class="muted small">click a module or a sticker on your page to edit it.</p>
                 break;
         }
     </div>
@@ -34,27 +42,29 @@
 @code {
     [Parameter, EditorRequired] public ProfileDto Profile { get; set; } = default!;
     [Parameter] public string? Panel { get; set; }
+    [Parameter] public string StyleSection { get; set; } = "colors";
+    [Parameter] public EventCallback<string> StyleSectionChanged { get; set; }
     [Parameter] public ProfileModuleDto? SelectedModule { get; set; }
+    [Parameter] public StickerDto? SelectedSticker { get; set; }
     [Parameter] public int? CurrentUserId { get; set; }
     [Parameter] public EventCallback OnChanged { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
     [Parameter] public EventCallback<string> OnAddModule { get; set; }
+    [Parameter] public EventCallback<StickerDto> OnAddSticker { get; set; }
     [Parameter] public EventCallback OnDeleteModule { get; set; }
     [Parameter] public EventCallback OnDuplicateModule { get; set; }
+    [Parameter] public EventCallback OnDeleteSticker { get; set; }
+    [Parameter] public EventCallback OnDuplicateSticker { get; set; }
+    [Parameter] public EventCallback OnStickerToFront { get; set; }
 
     private string Title => Panel switch
     {
-        "theme" => "THEME // GLOBAL STYLE",
-        "header" => "HEADER // IDENTITY",
-        "add" => "MODULES // ADD",
-        "css" => "ADVANCED // CUSTOM CSS",
-        "module" => $"MODULE // {ModuleCatalog.Get(SelectedModule?.Type ?? "").Label.ToUpper()}",
-        _ => "EDITOR"
+        "looks" => "looks",
+        "style" => "style",
+        "add" => "add to your page",
+        "advanced" => "advanced",
+        "module" => ModuleCatalog.Get(SelectedModule?.Type ?? "").Label,
+        "sticker" => "sticker",
+        _ => "editor"
     };
-
-    private async Task ApplyPreset(string name)
-    {
-        Profile.Theme = ThemePresets.Create(name);
-        await OnChanged.InvokeAsync();
-    }
 }

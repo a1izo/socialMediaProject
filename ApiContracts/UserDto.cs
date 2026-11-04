@@ -8,4 +8,6 @@ public class UserDto
     public string? PhoneNumber { get; set; }
     public bool IsModerator { get; set; }
     public DateTime CreatedDate { get; set; }
+    // everyone | requests | following | nobody
+    public string MessagePrivacy { get; set; } = "requests";
 }

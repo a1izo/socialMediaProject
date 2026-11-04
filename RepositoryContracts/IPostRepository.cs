@@ -1,4 +1,4 @@
-﻿using Entities;
+using Entities;
 
 namespace RepositoryContracts;
 
@@ -20,4 +20,8 @@ public interface IPostRepository
     Task AddTagAsync(int postId, int tagId);
     Task RemoveTagAsync(int postId, int tagId);
     IQueryable<Tag> GetTagsForPost(int postId);
+
+    //media logic
+    Task AddMediaAsync(PostMedia media);
+    IQueryable<PostMedia> GetMedia(int postId);
 }

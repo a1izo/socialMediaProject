@@ -4,26 +4,25 @@
 @inject AuthenticationStateProvider AuthProvider
 @inject NavigationManager NavMgr
 
-<PageTitle>join // cybernet</PageTitle>
+<PageTitle>sign up // cybernet</PageTitle>
 
 <div class="container narrow auth-page">
     <section class="hud-frame auth-card">
-        <span class="hud-label">NEW.NODE // REGISTER</span>
-        <h1 class="display">claim your node</h1>
-        <p class="muted">pick a name. you'll land straight in your profile editor.</p>
+        <h1 class="display">sign up</h1>
+        <p class="muted">you'll set up your profile right after.</p>
 
         <form class="form" @onsubmit="RegisterAsync" @onsubmit:preventDefault>
             <label class="field">
                 <span class="field-label">user name</span>
                 <input class="input" @bind="userName" autocomplete="username" maxlength="30" />
-                <span class="field-hint">letters, numbers, _ and - only. this becomes cybernet/u/@(string.IsNullOrWhiteSpace(userName) ? "you" : userName)</span>
+                <span class="field-hint">letters, numbers, _ and -. your profile will live at /u/@(string.IsNullOrWhiteSpace(userName) ? "name" : userName)</span>
             </label>
             <label class="field">
                 <span class="field-label">email</span>
                 <input class="input" type="email" @bind="email" autocomplete="email" />
             </label>
             <label class="field">
-                <span class="field-label">phone // optional</span>
+                <span class="field-label">phone (optional)</span>
                 <input class="input" type="tel" @bind="phone" autocomplete="tel" />
             </label>
             <label class="field">
@@ -37,7 +36,7 @@
 
             <ErrorBanner Message="@error" />
 
-            <button class="btn btn-primary btn-lg" type="submit" disabled="@busy"><StarGlyph Size="12" /> create account</button>
+            <button class="btn btn-primary btn-lg" type="submit" disabled="@busy">create account</button>
         </form>
         <p class="muted small">already have one? <a href="/login">log in</a>.</p>
     </section>

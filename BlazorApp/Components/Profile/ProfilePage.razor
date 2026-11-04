@@ -2,6 +2,7 @@
 @implements IAsyncDisposable
 @inject IProfileService ProfileService
 @inject IUserService UserService
+@inject IMessageService MessageService
 @inject ProfileCardCache CardCache
 @inject ApiConfig Api
 @inject IJSRuntime Js
@@ -11,13 +12,13 @@
 
 @if (loading)
 {
-    <div class="container"><Loading Label="tuning in" /></div>
+    <div class="container"><Loading /></div>
 }
 else if (view is null)
 {
     <div class="container narrow">
         <ErrorBanner Message="@error" />
-        <a class="btn" href="/people">find people</a>
+        <a class="btn" href="/search">find people</a>
     </div>
 }
 else
@@ -26,15 +27,18 @@ else
     {
         <NavigationLock ConfirmExternalNavigation="@dirty" OnBeforeInternalNavigation="ConfirmLeaveAsync" />
         <div class="editor-bar">
-            <span class="hud-label">EDIT MODE @(dirty ? "// UNSAVED" : "")</span>
             <div class="editor-bar-tabs">
-                <button type="button" class="@(panel == "theme" ? "is-active" : "")" @onclick='() => OpenPanel("theme")'><Icon Name="palette" Size="14" /> theme</button>
-                <button type="button" class="@(panel == "header" ? "is-active" : "")" @onclick='() => OpenPanel("header")'><Icon Name="user" Size="14" /> header</button>
-                <button type="button" class="@(panel == "add" ? "is-active" : "")" @onclick='() => OpenPanel("add")'><Icon Name="plus" Size="14" /> add module</button>
-                <button type="button" class="@(panel == "css" ? "is-active" : "")" @onclick='() => OpenPanel("css")'><Icon Name="css" Size="14" /> custom css</button>
+                @foreach ((string key, string label, string icon) in EditorTabs)
+                {
+                    <button type="button" class="@(panel == key ? "is-active" : "")" @onclick="() => OpenPanel(key)"><Icon Name="@icon" Size="14" /> @label</button>
+                }
             </div>
             <span class="spacer"></span>
-            <button type="button" class="btn btn-sm btn-ghost" @onclick="DiscardAsync">discard</button>
+            @if (dirty)
+            {
+                <span class="editor-bar-note">unsaved changes</span>
+            }
+            <button type="button" class="btn btn-sm btn-ghost" @onclick="DiscardAsync">cancel</button>
             <button type="button" class="btn btn-sm btn-primary" @onclick="SaveAsync" disabled="@saving">
                 <Icon Name="check" Size="14" /> @(saving ? "saving" : "save")
             </button>
@@ -42,7 +46,7 @@ else
     }
 
     <div class="profile-root cn-themed cn-profile-u@(view.UserId) @ThemeCss.Classes(view.Theme) @(editing ? "is-editing" : "") @(panel is not null && editing ? "has-drawer" : "")"
-         style="@ThemeCss.Variables(view.Theme) @ThemeCss.Background(view.Theme, Api)">
+         style="@ThemeCss.Variables(view.Theme) @ThemeCss.Background(view.Theme, Api)" @ref="root">
 
         <FontLinks Urls="@ThemeCss.FontUrls(view.Theme)" />
         @if (!plainView && !string.IsNullOrWhiteSpace(view.CustomCss))
@@ -50,6 +54,10 @@ else
             @((MarkupString)$"<style>{ScopedCss}</style>")
         }
 
+        @if (view.Theme.AnimatedBackground != "none")
+        {
+            <div class="bg-anim bg-@CssValues.OneOf(view.Theme.AnimatedBackground, "none", ThemeCss.AnimatedBackgrounds)" aria-hidden="true"></div>
+        }
         <div class="profile-fx" aria-hidden="true"></div>
         @if (view.Theme.Sparkles)
         {
@@ -59,7 +67,7 @@ else
         <div class="profile-inner">
             <ErrorBanner Message="@error" />
 
-            <ProfileHeader Profile="view">
+            <ProfileHeader Profile="view" Editing="editing" OnChanged="MarkDirty" OnOpenHeader="OpenHeaderSettings">
                 @if (isOwner)
                 {
                     if (!editing)
@@ -70,12 +78,13 @@ else
                 else
                 {
                     <FollowButton TargetUserId="view.UserId" CurrentUserId="currentUserId" @bind-IsFollowing="isFollowing" @bind-IsFollowing:after="RefreshStatsAsync" />
+                    <button type="button" class="btn" @onclick="MessageAsync"><Icon Name="message" Size="14" /> message</button>
                 }
                 @if (!isOwner && !string.IsNullOrWhiteSpace(view.CustomCss))
                 {
                     <button type="button" class="btn btn-ghost btn-sm" @onclick="() => plainView = !plainView"
                             title="@(plainView ? "show their custom css" : "hide their custom css")">
-                        <Icon Name="@(plainView ? "eye" : "eye-off")" Size="14" /> @(plainView ? "styled view" : "plain view")
+                        <Icon Name="@(plainView ? "eye" : "eye-off")" Size="14" /> @(plainView ? "their style" : "plain")
                     </button>
                 }
             </ProfileHeader>
@@ -88,8 +97,8 @@ else
                     if (module.IsVisible || editing)
                     {
                         <ModuleFrame @key="module" Profile="view" Module="module" Index="index" Editing="editing"
-                                     Selected="@(editing && selectedIndex == index)"
-                                     OnSelect="SelectModule" OnDragStart="i => dragIndex = i" OnDropOn="DropOnAsync"
+                                     Selected="@(editing && panel == "module" && selectedIndex == index)"
+                                     OnSelect="SelectModule" OnDragStart="i => dragIndex = i" OnDropOn="DropOn"
                                      OnMove="d => Move(index, d)" OnResize="d => Resize(index, d)" OnChanged="MarkDirty" />
                     }
                 }
@@ -97,22 +106,27 @@ else
                 {
                     <button type="button" class="module-add-tile span-12" @onclick='() => OpenPanel("add")'
                             @ondragover:preventDefault="true" @ondrop="DropAtEnd">
-                        <Icon Name="plus" Size="20" /> add a module
+                        <Icon Name="plus" Size="20" /> add a module or sticker
                     </button>
                 }
                 else if (view.Modules.Count(m => m.IsVisible) == 0)
                 {
-                    <div class="module span-12"><p class="module-empty">this profile is a blank canvas.</p></div>
+                    <div class="module span-12"><p class="module-empty">nothing here yet.</p></div>
                 }
             </div>
+
+            <StickerLayer Stickers="view.Stickers" Editing="editing" SelectedId="@(panel == "sticker" ? selectedStickerId : null)" />
         </div>
     </div>
 
     if (editing && panel is not null)
     {
-        <ProfileEditor Profile="view" Panel="@panel" SelectedModule="SelectedModule" CurrentUserId="currentUserId"
-                       OnChanged="MarkDirty" OnClose="() => panel = null" OnAddModule="AddModule"
-                       OnDeleteModule="DeleteSelected" OnDuplicateModule="DuplicateSelected" />
+        <ProfileEditor Profile="view" Panel="@panel" @bind-StyleSection="styleSection"
+                       SelectedModule="SelectedModule" SelectedSticker="SelectedSticker" CurrentUserId="currentUserId"
+                       OnChanged="MarkDirty" OnClose="() => panel = null"
+                       OnAddModule="AddModule" OnAddSticker="AddSticker"
+                       OnDeleteModule="DeleteSelected" OnDuplicateModule="DuplicateSelected"
+                       OnDeleteSticker="DeleteSticker" OnDuplicateSticker="DuplicateSticker" OnStickerToFront="StickerToFront" />
     }
 }
 
@@ -121,6 +135,11 @@ else
     [SupplyParameterFromQuery(Name = "edit")] public bool? EditOnLoad { get; set; }
 
     [CascadingParameter] public Task<AuthenticationState> State { get; set; } = default!;
+
+    private static readonly (string, string, string)[] EditorTabs =
+    {
+        ("looks", "looks", "sparkle"), ("style", "style", "palette"), ("add", "add", "plus"), ("advanced", "advanced", "css")
+    };
 
     // "saved" is what the server has; "view" is what is rendered (a working copy while editing)
     private ProfileDto? saved;
@@ -134,14 +153,21 @@ else
     private bool isFollowing;
     private int? currentUserId;
     private int? selectedIndex;
+    private string? selectedStickerId;
     private int? dragIndex;
     private string? panel;
+    private string styleSection = "colors";
     private string? error;
     private string? loadedUserName;
     private string? trailState;
+    private bool editorScriptOn;
+    private ElementReference root;
+    private DotNetObjectReference<ProfilePage>? selfReference;
 
     private ProfileModuleDto? SelectedModule =>
         selectedIndex is not null && view is not null && selectedIndex < view.Modules.Count ? view.Modules[selectedIndex.Value] : null;
+
+    private StickerDto? SelectedSticker => view?.Stickers.FirstOrDefault(s => s.Id == selectedStickerId);
 
     private string ScopedCss => ProfileCss.Scope(view!.CustomCss, $".cn-profile-u{view.UserId}")
         .Replace("url(\"/uploads/", $"url(\"{Api.BaseUrl}/uploads/");
@@ -187,7 +213,20 @@ else
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        // the sparkle trail follows the mouse, which needs a few lines of JS
+        try
+        {
+            await SyncTrailAsync();
+            await SyncEditorScriptAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // the circuit is gone
+        }
+    }
+
+    // the sparkle trail follows the mouse, which needs a few lines of JS
+    private async Task SyncTrailAsync()
+    {
         string wanted = view is not null && view.Theme.SparkleTrail && !plainView
             ? CssValues.Color(view.Theme.Accent, "#ffffff")
             : "off";
@@ -197,21 +236,59 @@ else
         }
 
         trailState = wanted;
-        try
+        if (wanted == "off") await Js.InvokeVoidAsync("cybernet.trail.disable");
+        else await Js.InvokeVoidAsync("cybernet.trail.enable", wanted);
+    }
+
+    // dragging stickers and module edges is done in JS, which calls back into the methods below
+    private async Task SyncEditorScriptAsync()
+    {
+        if (editing == editorScriptOn)
         {
-            if (wanted == "off")
-            {
-                await Js.InvokeVoidAsync("cybernet.trail.disable");
-            }
-            else
-            {
-                await Js.InvokeVoidAsync("cybernet.trail.enable", wanted);
-            }
+            return;
         }
-        catch (JSDisconnectedException)
+
+        editorScriptOn = editing;
+        if (editing)
         {
-            // the circuit is gone
+            selfReference ??= DotNetObjectReference.Create(this);
+            await Js.InvokeVoidAsync("cybernet.editor.enable", root, selfReference);
         }
+        else
+        {
+            await Js.InvokeVoidAsync("cybernet.editor.disable");
+        }
+    }
+
+    [JSInvokable]
+    public async Task StickerMoved(string id, double x, int y)
+    {
+        StickerDto? sticker = view?.Stickers.FirstOrDefault(s => s.Id == id);
+        if (sticker is null) return;
+        sticker.X = Math.Round(Math.Clamp(x, 0, 100), 2);
+        sticker.Y = Math.Max(0, y);
+        selectedStickerId = id;
+        panel = "sticker";
+        dirty = true;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    [JSInvokable]
+    public async Task StickerClicked(string id)
+    {
+        selectedStickerId = id;
+        panel = "sticker";
+        await InvokeAsync(StateHasChanged);
+    }
+
+    [JSInvokable]
+    public async Task ModuleResized(int index, int columns)
+    {
+        if (view is null || index < 0 || index >= view.Modules.Count) return;
+        int[] spans = ProfileModuleTypes.AllowedSpans;
+        view.Modules[index].Span = spans.OrderBy(s => Math.Abs(s - columns)).First();
+        dirty = true;
+        await InvokeAsync(StateHasChanged);
     }
 
     private void StartEditing()
@@ -219,17 +296,20 @@ else
         view = Clone(saved!);
         editing = true;
         dirty = false;
-        panel = "theme";
+        panel = "looks";
         selectedIndex = null;
+        selectedStickerId = null;
     }
 
     private void OpenPanel(string name)
     {
         panel = panel == name ? null : name;
-        if (name != "module")
-        {
-            selectedIndex = null;
-        }
+    }
+
+    private void OpenHeaderSettings()
+    {
+        styleSection = "header";
+        panel = "style";
     }
 
     private void SelectModule(int index)
@@ -248,6 +328,43 @@ else
         view!.Modules.Add(ModuleCatalog.Create(type));
         selectedIndex = view.Modules.Count - 1;
         panel = "module";
+        dirty = true;
+    }
+
+    private void AddSticker(StickerDto sticker)
+    {
+        view!.Stickers.Add(sticker);
+        selectedStickerId = sticker.Id;
+        panel = "sticker";
+        dirty = true;
+    }
+
+    private void DeleteSticker()
+    {
+        view!.Stickers.RemoveAll(s => s.Id == selectedStickerId);
+        selectedStickerId = null;
+        panel = "add";
+        dirty = true;
+    }
+
+    private void DuplicateSticker()
+    {
+        if (SelectedSticker is not StickerDto source) return;
+        StickerDto copy = new()
+        {
+            Kind = source.Kind, Value = source.Value, X = Math.Min(100, source.X + 4), Y = source.Y + 30,
+            Size = source.Size, Rotation = source.Rotation, Color = source.Color
+        };
+        view!.Stickers.Add(copy);
+        selectedStickerId = copy.Id;
+        dirty = true;
+    }
+
+    private void StickerToFront()
+    {
+        if (SelectedSticker is not StickerDto sticker) return;
+        view!.Stickers.Remove(sticker);
+        view.Stickers.Add(sticker);
         dirty = true;
     }
 
@@ -270,7 +387,7 @@ else
         dirty = true;
     }
 
-    private void DropOnAsync(int targetIndex)
+    private void DropOn(int targetIndex)
     {
         if (dragIndex is null || dragIndex == targetIndex) return;
         MoveTo(dragIndex.Value, targetIndex);
@@ -318,13 +435,14 @@ else
         {
             await ProfileService.UpdateProfileAsync(view!.UserId, new UpdateProfileDto
             {
-                DisplayName = view.DisplayName,
+                DisplayName = string.IsNullOrWhiteSpace(view.DisplayName) ? view.UserName : view.DisplayName,
                 Tagline = view.Tagline,
                 AvatarUrl = view.AvatarUrl,
                 BannerUrl = view.BannerUrl,
                 Theme = view.Theme,
                 CustomCss = view.CustomCss,
-                Modules = view.Modules
+                Modules = view.Modules,
+                Stickers = view.Stickers
             });
             CardCache.Invalidate(view.UserId);
             saved = await ProfileService.GetProfileAsync(view.UserName);
@@ -333,6 +451,7 @@ else
             dirty = false;
             panel = null;
             selectedIndex = null;
+            selectedStickerId = null;
         }
         catch (Exception e)
         {
@@ -346,7 +465,7 @@ else
 
     private async Task DiscardAsync()
     {
-        if (dirty && !await Js.InvokeAsync<bool>("confirm", "discard your unsaved changes?"))
+        if (dirty && !await Js.InvokeAsync<bool>("confirm", "throw away your changes?"))
         {
             return;
         }
@@ -356,13 +475,34 @@ else
         dirty = false;
         panel = null;
         selectedIndex = null;
+        selectedStickerId = null;
     }
 
     private async Task ConfirmLeaveAsync(LocationChangingContext context)
     {
-        if (dirty && !await Js.InvokeAsync<bool>("confirm", "leave without saving your profile?"))
+        if (dirty && !await Js.InvokeAsync<bool>("confirm", "leave without saving?"))
         {
             context.PreventNavigation();
+        }
+    }
+
+    private async Task MessageAsync()
+    {
+        if (currentUserId is null)
+        {
+            NavMgr.NavigateTo("/login");
+            return;
+        }
+
+        error = null;
+        try
+        {
+            ConversationDto conversation = await MessageService.StartConversationAsync(currentUserId.Value, view!.UserId);
+            NavMgr.NavigateTo($"/messages/{conversation.Id}");
+        }
+        catch (Exception e)
+        {
+            error = e.Message;
         }
     }
 
@@ -390,10 +530,13 @@ else
         try
         {
             await Js.InvokeVoidAsync("cybernet.trail.disable");
+            await Js.InvokeVoidAsync("cybernet.editor.disable");
         }
         catch (JSDisconnectedException)
         {
             // the circuit is gone
         }
+
+        selfReference?.Dispose();
     }
 }

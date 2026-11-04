@@ -8,6 +8,7 @@ public class PostFileRepository : IPostRepository
     private readonly string postsFilePath = "posts.json";
     private readonly string postLikesFilePath = "postLikes.json";
     private readonly string postTagsFilePath = "postTags.json";
+    private readonly string postMediaFilePath = "postMedia.json";
     private readonly ITagRepository tagRepository;
 
     public PostFileRepository(ITagRepository tagRepository)
@@ -16,6 +17,7 @@ public class PostFileRepository : IPostRepository
         JsonFileHelper.EnsureFileExists(postsFilePath);
         JsonFileHelper.EnsureFileExists(postLikesFilePath);
         JsonFileHelper.EnsureFileExists(postTagsFilePath);
+        JsonFileHelper.EnsureFileExists(postMediaFilePath);
     }
 
     public async Task<Post> AddAsync(Post post)
@@ -168,5 +170,19 @@ public class PostFileRepository : IPostRepository
         List<PostTag> postTags = JsonFileHelper.Load<PostTag>(postTagsFilePath);
         List<int> tagIds = postTags.Where(pt => pt.PostId == postId).Select(pt => pt.TagId).ToList();
         return tagRepository.GetMany().Where(t => tagIds.Contains(t.Id));
+    }
+
+    public async Task AddMediaAsync(PostMedia media)
+    {
+        List<PostMedia> allMedia = await JsonFileHelper.LoadAsync<PostMedia>(postMediaFilePath);
+        media.Id = allMedia.Any() ? allMedia.Max(m => m.Id) + 1 : 1;
+        allMedia.Add(media);
+        await JsonFileHelper.SaveAsync(postMediaFilePath, allMedia);
+    }
+
+    public IQueryable<PostMedia> GetMedia(int postId)
+    {
+        List<PostMedia> allMedia = JsonFileHelper.Load<PostMedia>(postMediaFilePath);
+        return allMedia.Where(m => m.PostId == postId).OrderBy(m => m.Order).AsQueryable();
     }
 }

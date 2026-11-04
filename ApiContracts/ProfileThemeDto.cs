@@ -53,8 +53,31 @@ public class ProfileThemeDto
     public int SparkleDensity { get; set; } = 2;
     public bool HudLabels { get; set; } = true;
 
+    // 0 to 100, how strong grain, scanlines and halftone look
+    public int EffectIntensity { get; set; } = 50;
+    // none | flow | starfield | dither | grid | rain
+    public string AnimatedBackground { get; set; } = "none";
+
+    // layout: classic | sidebar | centered | magazine | overlay
+    public string Layout { get; set; } = "classic";
+    // none | rise | fade | pop | tilt
+    public string ModuleMotion { get; set; } = "rise";
+
     // header
     public int BannerHeight { get; set; } = 240;
+    // cover: crop the banner to BannerHeight. full: show the whole image at its own shape
+    public string BannerFit { get; set; } = "cover";
+    // avatar center, in % of the banner's width (X) and height (Y), and its size in % of the banner's width.
+    // Percentages keep a frame drawn into the banner lined up at every screen width.
+    public int AvatarX { get; set; } = 9;
+    public int AvatarY { get; set; } = 100;
+    public int AvatarSize { get; set; } = 12;
+    // plain | glitch | chrome | outline | neon | typewriter
+    public string NameStyle { get; set; } = "plain";
+    // none | ring | double | sigil | orbit | spark
+    public string AvatarDecoration { get; set; } = "none";
+    // youtube or spotify link, played only when the visitor presses play
+    public string? SongUrl { get; set; }
     // circle | square | hex | star
     public string AvatarShape { get; set; } = "circle";
     public int AvatarBorder { get; set; } = 3;

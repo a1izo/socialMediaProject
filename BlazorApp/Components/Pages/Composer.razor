@@ -1,0 +1,184 @@
+@page "/post"
+@page "/posts/new"
+@attribute [Authorize]
+@inject IPostService PostService
+@inject ITagService TagService
+@inject IUploadService UploadService
+@inject ApiConfig Api
+@inject NavigationManager NavMgr
+
+<PageTitle>new post // cybernet</PageTitle>
+
+<div class="container narrow">
+    <section class="composer">
+        <h1 class="composer-heading">new post</h1>
+
+        <input class="input composer-title" @bind="title" @bind:event="oninput" maxlength="140" placeholder="title (optional)" />
+        <textarea class="input composer-body" rows="6" @bind="body" @bind:event="oninput"
+                  placeholder="what's going on?"></textarea>
+
+        @if (media.Count > 0 || uploading > 0)
+        {
+            <div class="composer-media count-@Math.Min(media.Count + uploading, 4)">
+                @foreach (PostMediaDto item in media)
+                {
+                    <div class="composer-media-item">
+                        @if (item.Kind == "video")
+                        {
+                            <video src="@Api.Resolve(item.Url)" muted playsinline preload="metadata"></video>
+                        }
+                        else
+                        {
+                            <img src="@Api.Resolve(item.Url)" alt="" />
+                        }
+                        <button type="button" class="composer-media-remove" title="remove" @onclick="() => media.Remove(item)"><Icon Name="x" Size="14" /></button>
+                    </div>
+                }
+                @for (int i = 0; i < uploading; i++)
+                {
+                    <div class="composer-media-item is-uploading"><Loading Label="uploading" /></div>
+                }
+            </div>
+        }
+
+        <div class="composer-tools">
+            <label class="btn btn-sm btn-ghost @(media.Count + uploading >= MaxMedia ? "is-disabled" : "")" title="add images, gifs or videos">
+                <Icon Name="image" Size="16" /> media
+                <InputFile OnChange="AddMediaAsync" multiple accept="@IUploadService.MediaTypes" class="visually-hidden"
+                           disabled="@(media.Count + uploading >= MaxMedia)" />
+            </label>
+            <span class="composer-hint">@media.Count/@MaxMedia · images and gifs up to 5 MB, videos up to 50 MB</span>
+            <span class="spacer"></span>
+            <button type="button" class="btn btn-sm btn-ghost" @onclick="() => preview = !preview">@(preview ? "edit" : "preview")</button>
+        </div>
+
+        @if (preview && !string.IsNullOrWhiteSpace(body))
+        {
+            <div class="preview-box"><MarkdownView Text="@body" /></div>
+        }
+
+        <label class="field">
+            <span class="field-label">tags</span>
+            <input class="input" @bind="tagText" @bind:event="oninput" placeholder="art, music, y2k" />
+        </label>
+        @if (knownTags.Count > 0)
+        {
+            <div class="tag-row">
+                @foreach (TagDto tag in knownTags.Take(20))
+                {
+                    <button type="button" class="tag-chip @(Tags.Contains(tag.Name) ? "is-active" : "")" @onclick="() => ToggleTag(tag.Name)">#@tag.Name</button>
+                }
+            </div>
+        }
+
+        <ErrorBanner Message="@error" />
+
+        <div class="row gap">
+            <button class="btn btn-primary btn-lg" type="button" @onclick="CreateAsync" disabled="@(!CanPost)">
+                <Icon Name="send" Size="16" /> post
+            </button>
+            <a class="btn btn-ghost" href="/">cancel</a>
+        </div>
+    </section>
+</div>
+
+@code {
+    private const int MaxMedia = 4;
+
+    [CascadingParameter] public Task<AuthenticationState> State { get; set; } = default!;
+
+    private string title = "";
+    private string body = "";
+    private string tagText = "";
+    private bool preview;
+    private bool busy;
+    private int uploading;
+    private string? error;
+    private List<TagDto> knownTags = new();
+    private readonly List<PostMediaDto> media = new();
+
+    private List<string> Tags => PostDetails.ParseTags(tagText);
+
+    private bool CanPost => !busy && uploading == 0 &&
+                            (!string.IsNullOrWhiteSpace(title) || !string.IsNullOrWhiteSpace(body) || media.Count > 0);
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            knownTags = await TagService.GetTagsAsync();
+        }
+        catch (Exception e)
+        {
+            error = e.Message;
+        }
+    }
+
+    private async Task AddMediaAsync(InputFileChangeEventArgs e)
+    {
+        error = null;
+        List<IBrowserFile> files = e.GetMultipleFiles(MaxMedia).Take(MaxMedia - media.Count).ToList();
+        uploading = files.Count;
+        foreach (IBrowserFile file in files)
+        {
+            try
+            {
+                UploadResultDto result = await UploadService.UploadAsync(file);
+                media.Add(new PostMediaDto { Url = result.Url, Kind = result.Kind });
+            }
+            catch (Exception ex)
+            {
+                error = $"{file.Name}: {ex.Message}";
+            }
+            finally
+            {
+                uploading--;
+                StateHasChanged();
+            }
+        }
+    }
+
+    private void ToggleTag(string name)
+    {
+        List<string> tags = Tags;
+        if (!tags.Remove(name))
+        {
+            tags.Add(name);
+        }
+
+        tagText = string.Join(", ", tags);
+    }
+
+    private async Task CreateAsync()
+    {
+        busy = true;
+        error = null;
+        try
+        {
+            int userId = (await State).User.GetUserId()!.Value;
+            PostDto created = await PostService.AddPostAsync(new CreatePostDto
+            {
+                Title = title,
+                Body = body,
+                UserId = userId,
+                Media = media.ToList()
+            });
+
+            foreach (string name in Tags)
+            {
+                TagDto tag = await TagService.GetOrCreateTagAsync(name);
+                await PostService.AddTagAsync(created.Id, tag.Id);
+            }
+
+            NavMgr.NavigateTo($"/posts/{created.Id}");
+        }
+        catch (Exception e)
+        {
+            error = e.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+}

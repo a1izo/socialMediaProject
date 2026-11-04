@@ -1,0 +1,203 @@
+@page "/search"
+@page "/people"
+@implements IDisposable
+@inject ISearchService SearchService
+@inject ITagService TagService
+@inject IUserService UserService
+@inject ProfileCardCache CardCache
+@inject NavigationManager NavMgr
+
+<PageTitle>search // cybernet</PageTitle>
+
+<div class="container">
+    <div class="search-head">
+        <div class="search-box search-box-lg">
+            <Icon Name="search" />
+            <input class="input" placeholder="search people, posts and tags" @bind="query" @bind:event="oninput" @bind:after="QueueSearch"
+                   autofocus aria-label="search" />
+        </div>
+        <div class="segmented" role="tablist">
+            @foreach ((string value, string label) in Tabs)
+            {
+                <button type="button" class="@(type == value ? "is-active" : "")" @onclick="() => SetTypeAsync(value)">@label</button>
+            }
+        </div>
+    </div>
+
+    <ErrorBanner Message="@error" />
+
+    @if (string.IsNullOrWhiteSpace(query))
+    {
+        <section class="search-section">
+            <h2 class="section-title">tags</h2>
+            <div class="tag-row">
+                @foreach (TagDto tag in allTags)
+                {
+                    <a class="tag-chip" href="/?tag=@tag.Id">#@tag.Name</a>
+                }
+            </div>
+        </section>
+        if (suggested.Count > 0)
+        {
+            <section class="search-section">
+                <h2 class="section-title">people</h2>
+                <div class="user-grid">
+                    @foreach (ProfileCardDto card in suggested)
+                    {
+                        <UserTile @key="card.UserId" Card="card" />
+                    }
+                </div>
+            </section>
+        }
+    }
+    else if (searching && result is null)
+    {
+        <Loading />
+    }
+    else if (result is not null)
+    {
+        if (result.Users.Count == 0 && result.Posts.Count == 0 && result.Tags.Count == 0)
+        {
+            <div class="empty-state"><p>nothing matches "@query".</p></div>
+        }
+
+        if (result.Tags.Count > 0)
+        {
+            <section class="search-section">
+                <h2 class="section-title">tags <span class="count">@result.Tags.Count</span></h2>
+                <div class="tag-row">
+                    @foreach (TagDto tag in result.Tags)
+                    {
+                        <a class="tag-chip" href="/?tag=@tag.Id">#@tag.Name</a>
+                    }
+                </div>
+            </section>
+        }
+
+        if (result.Users.Count > 0)
+        {
+            <section class="search-section">
+                <h2 class="section-title">people <span class="count">@result.Users.Count</span></h2>
+                <div class="user-grid">
+                    @foreach (ProfileCardDto card in result.Users)
+                    {
+                        <UserTile @key="card.UserId" Card="card" />
+                    }
+                </div>
+            </section>
+        }
+
+        if (result.Posts.Count > 0)
+        {
+            <section class="search-section">
+                <h2 class="section-title">posts <span class="count">@result.Posts.Count</span></h2>
+                <div class="post-list">
+                    @foreach (PostDto post in result.Posts)
+                    {
+                        <PostCard @key="post.Id" Post="post" Card="@CardCache.Get(post.UserId)" />
+                    }
+                </div>
+            </section>
+        }
+    }
+</div>
+
+@code {
+    [SupplyParameterFromQuery(Name = "q")] public string? InitialQuery { get; set; }
+    [SupplyParameterFromQuery(Name = "type")] public string? InitialType { get; set; }
+
+    private static readonly (string, string)[] Tabs =
+    {
+        ("all", "all"), ("accounts", "people"), ("posts", "posts"), ("tags", "tags")
+    };
+
+    private string query = "";
+    private string type = "all";
+    private bool searching;
+    private SearchResultDto? result;
+    private List<TagDto> allTags = new();
+    private List<ProfileCardDto> suggested = new();
+    private string? error;
+    private CancellationTokenSource? debounce;
+
+    protected override async Task OnInitializedAsync()
+    {
+        query = InitialQuery ?? "";
+        type = Tabs.Any(t => t.Item1 == InitialType) ? InitialType! : NavMgr.Uri.Contains("/people") ? "accounts" : "all";
+        try
+        {
+            allTags = await TagService.GetTagsAsync();
+            List<int> ids = (await UserService.GetUsersAsync()).Select(u => u.Id).Take(12).ToList();
+            await CardCache.EnsureAsync(ids);
+            suggested = ids.Select(id => CardCache.Get(id)).Where(c => c is not null).Select(c => c!).ToList();
+        }
+        catch (Exception e)
+        {
+            error = e.Message;
+        }
+
+        if (!string.IsNullOrWhiteSpace(query))
+        {
+            await RunSearchAsync();
+        }
+    }
+
+    private async Task SetTypeAsync(string value)
+    {
+        type = value;
+        await RunSearchAsync();
+    }
+
+    // wait until the person stops typing for a moment before asking the API
+    private async Task QueueSearch()
+    {
+        debounce?.Cancel();
+        debounce = new CancellationTokenSource();
+        CancellationToken token = debounce.Token;
+        try
+        {
+            await Task.Delay(250, token);
+            await RunSearchAsync();
+        }
+        catch (TaskCanceledException)
+        {
+            // a newer keystroke took over
+        }
+    }
+
+    private async Task RunSearchAsync()
+    {
+        NavMgr.NavigateTo(NavMgr.GetUriWithQueryParameters("/search", new Dictionary<string, object?>
+        {
+            ["q"] = string.IsNullOrWhiteSpace(query) ? null : query,
+            ["type"] = type == "all" ? null : type
+        }), replace: true);
+
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            result = null;
+            return;
+        }
+
+        searching = true;
+        error = null;
+        try
+        {
+            result = await SearchService.SearchAsync(query, type);
+            await CardCache.EnsureAsync(result.Posts.Select(p => p.UserId));
+        }
+        catch (Exception e)
+        {
+            error = e.Message;
+        }
+        finally
+        {
+            searching = false;
+        }
+    }
+
+    public void Dispose()
+    {
+        debounce?.Cancel();
+    }
+}

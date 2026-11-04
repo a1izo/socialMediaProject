@@ -17,7 +17,7 @@
         </span>
         <label class="btn btn-sm">
             <Icon Name="upload" Size="14" /> @(uploading ? "uploading" : "upload")
-            <InputFile OnChange="UploadAsync" accept="image/png,image/jpeg,image/gif,image/webp" class="visually-hidden" />
+            <InputFile OnChange="UploadAsync" accept="@IUploadService.ImageTypes" class="visually-hidden" />
         </label>
         @if (!string.IsNullOrEmpty(Value))
         {
@@ -42,8 +42,13 @@
         uploading = true;
         try
         {
-            string url = await UploadService.UploadImageAsync(e.File);
-            await ValueChanged.InvokeAsync(url);
+            if (!e.File.ContentType.StartsWith("image/"))
+            {
+                throw new Exception("Pick an image file (png, jpg, gif or webp).");
+            }
+
+            UploadResultDto result = await UploadService.UploadAsync(e.File);
+            await ValueChanged.InvokeAsync(result.Url);
         }
         catch (Exception ex)
         {

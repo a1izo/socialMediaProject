@@ -2,6 +2,7 @@ using ApiContracts;
 using Entities;
 using Microsoft.AspNetCore.Mvc;
 using RepositoryContracts;
+using WebAPI.Services;
 
 namespace WebAPI.Controllers;
 
@@ -12,12 +13,15 @@ public class CommentsController : ControllerBase
     private readonly ICommentRepository commentRepo;
     private readonly IPostRepository postRepo;
     private readonly IUserRepository userRepo;
+    private readonly Notifier notifier;
 
-    public CommentsController(ICommentRepository commentRepo, IPostRepository postRepo, IUserRepository userRepo)
+    public CommentsController(ICommentRepository commentRepo, IPostRepository postRepo, IUserRepository userRepo,
+        Notifier notifier)
     {
         this.commentRepo = commentRepo;
         this.postRepo = postRepo;
         this.userRepo = userRepo;
+        this.notifier = notifier;
     }
 
     [HttpPost]
@@ -31,15 +35,16 @@ public class CommentsController : ControllerBase
             throw new ArgumentException($"User with ID '{request.UserId}' does not exist.");
         }
 
-        bool postExists = postRepo.GetMany().Any(p => p.Id == request.PostId);
-        if (!postExists)
+        Post? post = postRepo.GetMany().SingleOrDefault(p => p.Id == request.PostId);
+        if (post is null)
         {
             throw new ArgumentException($"Post with ID '{request.PostId}' does not exist.");
         }
 
+        Comment? parent = null;
         if (request.ParentCommentId is not null)
         {
-            Comment? parent = commentRepo.GetMany().SingleOrDefault(c => c.Id == request.ParentCommentId);
+            parent = commentRepo.GetMany().SingleOrDefault(c => c.Id == request.ParentCommentId);
             if (parent is null || parent.PostId != request.PostId)
             {
                 throw new ArgumentException(
@@ -56,6 +61,16 @@ public class CommentsController : ControllerBase
             CreatedDate = DateTime.Now
         };
         Comment created = await commentRepo.AddAsync(comment);
+
+        if (parent is not null)
+        {
+            await notifier.NotifyAsync(parent.UserId, request.UserId, Notifier.Reply, post.Id, created.Id);
+        }
+
+        if (parent is null || parent.UserId != post.UserId)
+        {
+            await notifier.NotifyAsync(post.UserId, request.UserId, Notifier.Comment, post.Id, created.Id);
+        }
         CommentDto dto = DtoMapper.ToDto(created, author.UserName, 0);
         return Created($"/comments/{dto.Id}", dto);
     }
@@ -140,7 +155,7 @@ public class CommentsController : ControllerBase
     [HttpPost("{id:int}/likes")]
     public async Task<ActionResult> LikeComment([FromRoute] int id, [FromBody] LikeDto request)
     {
-        await commentRepo.GetSingleAsync(id);
+        Comment comment = await commentRepo.GetSingleAsync(id);
         bool userExists = userRepo.GetMany().Any(u => u.Id == request.UserId);
         if (!userExists)
         {
@@ -148,13 +163,16 @@ public class CommentsController : ControllerBase
         }
 
         await commentRepo.LikeAsync(id, request.UserId);
+        await notifier.NotifyAsync(comment.UserId, request.UserId, Notifier.CommentLike, comment.PostId, comment.Id);
         return NoContent();
     }
 
     [HttpDelete("{id:int}/likes/{userId:int}")]
     public async Task<ActionResult> UnlikeComment([FromRoute] int id, [FromRoute] int userId)
     {
+        Comment comment = await commentRepo.GetSingleAsync(id);
         await commentRepo.UnlikeAsync(id, userId);
+        await notifier.RetractAsync(comment.UserId, userId, Notifier.CommentLike, comment.PostId, comment.Id);
         return NoContent();
     }
 
