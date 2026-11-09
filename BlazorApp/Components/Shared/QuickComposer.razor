@@ -1,0 +1,144 @@
+@inject IPostService PostService
+@inject IUploadService UploadService
+@inject ProfileCardCache CardCache
+@inject ApiConfig Api
+
+@* Post straight from the top of the feed, in your own theme, so you see the post the way others will.
+   Titles and tags live on the full composer (/post). *@
+<div class="quick-composer piece @ThemedClasses" style="@ThemedStyle">
+    @if (me is not null)
+    {
+        <FontLinks Urls="@ThemeCss.FontUrls(me.Theme.DisplayFont, me.Theme.BodyFont)" />
+    }
+    <header class="piece-strip piece-strip-thin" style="@StripStyle">
+        <span class="piece-index">new post · as @(me?.DisplayName ?? "you")</span>
+    </header>
+    <div class="quick-composer-main">
+        <textarea class="quick-composer-input" rows="@(string.IsNullOrEmpty(body) ? 2 : 4)" placeholder="write something. it'll look like this in the feed."
+                  @bind="body" @bind:event="oninput" maxlength="4000" aria-label="write a post"></textarea>
+
+        @if (media.Count > 0 || uploading > 0)
+        {
+            <div class="composer-media count-@Math.Min(media.Count + uploading, 4)">
+                @foreach (PostMediaDto item in media)
+                {
+                    <div class="composer-media-item">
+                        @if (item.Kind == "video")
+                        {
+                            <video src="@Api.Resolve(item.Url)" muted playsinline preload="metadata"></video>
+                        }
+                        else
+                        {
+                            <img src="@Api.Resolve(item.Url)" alt="" />
+                        }
+                        <button type="button" class="composer-media-remove" title="remove" @onclick="() => media.Remove(item)"><Icon Name="x" Size="14" /></button>
+                    </div>
+                }
+                @for (int i = 0; i < uploading; i++)
+                {
+                    <div class="composer-media-item is-uploading"><Loading Label="uploading" /></div>
+                }
+            </div>
+        }
+
+        <ErrorBanner Message="@error" />
+
+        <div class="quick-composer-bar">
+            <label class="piece-act quick-composer-tool @(media.Count + uploading >= 4 ? "is-disabled" : "")" title="add images, gifs or videos">
+                + media
+                <InputFile OnChange="AddMediaAsync" multiple accept="@IUploadService.MediaTypes" class="visually-hidden" />
+            </label>
+            <a class="piece-act" href="/post" title="add a title and tags">+ title and tags</a>
+            <span class="spacer"></span>
+            <button type="button" class="btn btn-primary btn-sm" @onclick="PostAsync" disabled="@(!CanPost)">post</button>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public EventCallback<PostDto> OnPosted { get; set; }
+
+    [CascadingParameter] public Task<AuthenticationState> State { get; set; } = default!;
+
+    private ProfileCardDto? me;
+    private int userId;
+    private string body = "";
+    private bool busy;
+    private int uploading;
+    private string? error;
+    private readonly List<PostMediaDto> media = new();
+
+    private bool CanPost => !busy && uploading == 0 && (!string.IsNullOrWhiteSpace(body) || media.Count > 0);
+
+    private string ThemedClasses => me is null
+        ? ""
+        : $"post-themed post-style-{CssValues.OneOf(me.Theme.CardStyle, "solid", "solid", "glass", "outline", "brutal", "hud", "bare")}";
+
+    private string? ThemedStyle => me is null ? null : ThemeCss.Variables(me.Theme) + ThemeCss.CardBackground(me.Theme, Api);
+
+    private string StripStyle => CssValues.IsUrl(me?.BannerUrl) ? $"background-image:url(\"{Api.Resolve(me!.BannerUrl)}\");" : "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        userId = (await State).User.GetUserId() ?? 0;
+        try
+        {
+            await CardCache.EnsureAsync(new[] { userId });
+            me = CardCache.Get(userId);
+        }
+        catch (Exception)
+        {
+            // falls back to the plain card
+        }
+    }
+
+    private async Task AddMediaAsync(InputFileChangeEventArgs e)
+    {
+        error = null;
+        List<IBrowserFile> files = e.GetMultipleFiles(4).Take(4 - media.Count).ToList();
+        uploading = files.Count;
+        foreach (IBrowserFile file in files)
+        {
+            try
+            {
+                UploadResultDto result = await UploadService.UploadAsync(file);
+                media.Add(new PostMediaDto { Url = result.Url, Kind = result.Kind });
+            }
+            catch (Exception ex)
+            {
+                error = $"{file.Name}: {ex.Message}";
+            }
+            finally
+            {
+                uploading--;
+                StateHasChanged();
+            }
+        }
+    }
+
+    private async Task PostAsync()
+    {
+        busy = true;
+        error = null;
+        try
+        {
+            PostDto created = await PostService.AddPostAsync(new CreatePostDto
+            {
+                Body = body,
+                UserId = userId,
+                Media = media.ToList()
+            });
+            body = "";
+            media.Clear();
+            await OnPosted.InvokeAsync(created);
+        }
+        catch (Exception e)
+        {
+            error = e.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+}

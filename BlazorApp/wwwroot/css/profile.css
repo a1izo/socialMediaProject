@@ -117,6 +117,7 @@
 
 .banner {
     position: relative;
+    container-type: inline-size;
     height: var(--banner-h);
     background:
         linear-gradient(115deg, color-mix(in srgb, var(--accent) 85%, transparent), color-mix(in srgb, var(--accent-2) 80%, transparent));
@@ -160,9 +161,11 @@
 .avatar-anchor {
     position: absolute;
     z-index: 3;
-    left: var(--ax, 9%);
-    top: var(--ay, 100%);
-    width: max(56px, var(--aw, 12%));
+    /* the avatar always stays fully on the banner left to right, and never pokes out above it */
+    --w: max(56px, calc(var(--awn, 12) * 1cqw));
+    left: clamp(calc(var(--w) / 2), var(--ax, 9%), calc(100% - var(--w) / 2));
+    top: max(calc(var(--w) / 2), var(--ay, 100%));
+    width: var(--w);
     aspect-ratio: 1;
     transform: translate(-50%, -50%);
     container-type: inline-size;
@@ -343,6 +346,40 @@
 .name-right .profile-handle,
 .name-right .profile-links {
     justify-content: flex-end;
+}
+
+.name-right .profile-tagline {
+    margin-left: auto;
+}
+
+/* edit mode: the name and tagline are text you click to change */
+.profile-name-input,
+.profile-tagline-input {
+    text-align: inherit;
+}
+
+.profile-tagline-input {
+    resize: none;
+    field-sizing: content;
+    min-height: 0;
+    max-width: 60ch;
+    line-height: 1.4;
+}
+
+.is-editable {
+    cursor: text;
+    border-radius: var(--radius);
+    outline: 1px dashed transparent;
+    outline-offset: 4px;
+}
+
+.is-editable:hover {
+    outline-color: color-mix(in srgb, var(--text) 45%, transparent);
+}
+
+.profile-tagline.is-empty {
+    color: var(--muted);
+    font-style: italic;
 }
 
 /* ---------- module grid ---------- */
@@ -551,9 +588,10 @@
     container-type: inline-size;
 }
 
-.text-block.size-lg .md-h1 { font-size: clamp(1.8rem, 9cqi, 3.8rem); }
-.text-block.size-xl .md-h1 { font-size: clamp(2.2rem, 12cqi, 7rem); letter-spacing: -0.03em; }
-.text-block.size-xl .md-h2 { font-size: clamp(1.6rem, 7cqi, 3.4rem); }
+.text-block.size-lg .md-h1 { font-size: clamp(1.15rem, 9cqi, 3.8rem); }
+.text-block.size-xl .md-h1 { font-size: clamp(1.25rem, 12cqi, 7rem); letter-spacing: -0.03em; }
+.text-block.size-xl .md-h2 { font-size: clamp(1.1rem, 7cqi, 3.4rem); }
+.module-text .text-block { overflow-wrap: break-word; }
 
 .text-block.align-center { text-align: center; }
 .text-block.align-right { text-align: right; }
@@ -1058,7 +1096,7 @@
     position: sticky;
     top: calc(var(--topbar-h) + var(--space-4));
     flex-direction: column;
-    padding: calc(var(--avatar-overflow, 0px) - var(--space-4)) 0 0;
+    padding: var(--avatar-id-pad, 0px) 0 0;
 }
 
 .layout-sidebar .song-player {
@@ -1074,6 +1112,8 @@
 .layout-sidebar .profile-grid {
     grid-column: 2;
     grid-row: 2 / span 3;
+    /* room for an avatar that hangs over the modules column */
+    margin-top: var(--avatar-grid-pad, 0px);
 }
 
 /* magazine: huge name, dense grid */
@@ -1339,7 +1379,7 @@
     overflow: hidden;
     white-space: nowrap;
     border-right: 0.08em solid var(--accent);
-    animation: type-in 2.4s steps(14) 1 both, caret 0.9s steps(1) infinite;
+    animation: type-in 2.4s steps(var(--name-len, 14)) 1 both, caret 0.9s steps(1) infinite;
 }
 
 @keyframes type-in {

@@ -4,23 +4,23 @@
 
 :root,
 [data-shell="void"] {
-    --bg: #0a0a0b;
-    --surface: #121215;
-    --surface-2: #1b1b20;
-    --text: #ecebe6;
-    --muted: #85858f;
-    --accent: #ff2a4f;
+    --bg: #0b0b0e;
+    --surface: #141418;
+    --surface-2: #1c1c22;
+    --text: #ededf1;
+    --muted: #8d8d99;
+    --accent: #ff3b5c;
     --on-accent: #ffffff;
-    --accent-2: #2f45ff;
-    --line: #2a2a31;
-    --radius: 2px;
+    --accent-2: #5263ff;
+    --line: #25252d;
+    --radius: 12px;
     --border-w: 1px;
     --glow-color: var(--accent);
     --glow: 0px;
 
     --font-display: 'Unbounded', sans-serif;
-    --font-body: 'Space Grotesk', system-ui, sans-serif;
-    --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+    --font-body: 'Geist', 'Space Grotesk', system-ui, sans-serif;
+    --font-mono: 'Geist Mono', 'JetBrains Mono', ui-monospace, monospace;
     --base-size: 16px;
     --heading-case: none;
     --tracking: 0em;
@@ -30,8 +30,9 @@
     --success: #3ddc97;
     --focus: #2f45ff;
 
-    --grain-opacity: 0.07;
-    --scan-opacity: 0.045;
+    --grain-opacity: 0.035;
+    --scan-opacity: 0;
+    --sidebar-w: 0px;
     --topbar-h: 60px;
     --editorbar-h: 52px;
     --drawer-w: 380px;
@@ -60,17 +61,17 @@
 }
 
 [data-shell="paper"] {
-    --bg: #e9e7e2;
-    --surface: #f4f2ed;
-    --surface-2: #e1ded7;
-    --text: #0d0d0f;
-    --muted: #5d5b57;
-    --accent: #e5122f;
+    --bg: #f5f4f1;
+    --surface: #ffffff;
+    --surface-2: #ecebe7;
+    --text: #111114;
+    --muted: #66656d;
+    --accent: #e8193c;
     --on-accent: #ffffff;
-    --accent-2: #1f2dff;
-    --line: #c4c1b9;
-    --focus: #1f2dff;
-    --grain-opacity: 0.13;
+    --accent-2: #3346ff;
+    --line: #e1dfd9;
+    --focus: #3346ff;
+    --grain-opacity: 0.05;
     --scan-opacity: 0;
 
     color-scheme: light;

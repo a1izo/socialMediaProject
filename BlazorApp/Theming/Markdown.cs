@@ -13,6 +13,7 @@ public static class Markdown
     private static readonly Regex codeRegex = new(@"`([^`]+)`");
     private static readonly Regex boldRegex = new(@"\*\*(.+?)\*\*");
     private static readonly Regex italicRegex = new(@"(?<![*\w])\*(?!\s)(.+?)(?<!\s)\*(?!\*)");
+    private static readonly Regex underscoreItalicRegex = new(@"(?<![_\w])_(?!\s)(.+?)(?<!\s)_(?![_\w])");
     private static readonly Regex strikeRegex = new(@"~~(.+?)~~");
     private static readonly Regex linkRegex = new(@"\[([^\]]+)\]\((https?://[^\s)]+)\)");
 
@@ -129,6 +130,7 @@ public static class Markdown
         encoded = linkRegex.Replace(encoded, "<a href=\"$2\" target=\"_blank\" rel=\"noopener noreferrer nofollow\">$1</a>");
         encoded = boldRegex.Replace(encoded, "<strong>$1</strong>");
         encoded = italicRegex.Replace(encoded, "<em>$1</em>");
+        encoded = underscoreItalicRegex.Replace(encoded, "<em>$1</em>");
         encoded = strikeRegex.Replace(encoded, "<s>$1</s>");
         return encoded;
     }

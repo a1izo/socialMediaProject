@@ -92,7 +92,8 @@ internal static class DtoMapper
             BannerUrl = profile.BannerUrl,
             IsModerator = user.IsModerator,
             Theme = ReadTheme(profile.ThemeJson),
-            Stats = stats
+            Stats = stats,
+            UpdatedDate = profile.UpdatedDate
         };
     }
 

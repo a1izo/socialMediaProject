@@ -146,6 +146,7 @@
             <RangeField Label="left / right" Min="0" Max="100" Unit="%" @bind-Value="Theme.AvatarX" @bind-Value:after="Changed" />
             <RangeField Label="up / down" Min="0" Max="160" Unit="%" @bind-Value="Theme.AvatarY" @bind-Value:after="Changed" />
             <RangeField Label="size" Min="4" Max="45" Unit="%" @bind-Value="Theme.AvatarSize" @bind-Value:after="Changed" />
+            <RangeField Label="outline" Min="0" Max="10" Unit="px" @bind-Value="Theme.AvatarBorder" @bind-Value:after="Changed" />
             <p class="ed-hint">positions are relative to the banner. if your banner has a frame drawn for the avatar, choose "show whole image" and slide the avatar into it.</p>
             <div class="tile-grid tile-grid-4">
                 @foreach (string shape in new[] { "circle", "square", "hex", "star" })

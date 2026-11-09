@@ -84,6 +84,39 @@ public static class ThemeCss
         }
     }
 
+    // The theme's background for a small card (a post in the feed). Same as Background(),
+    // but nothing is fixed to the screen, so every card shows its own copy.
+    public static string CardBackground(ProfileThemeDto theme, ApiConfig api)
+    {
+        string bg = CssValues.Color(theme.Background, "#0a0a0b");
+        switch (theme.BackgroundMode)
+        {
+            case "gradient":
+            {
+                List<string> stops = new() { CssValues.Color(theme.GradientFrom, bg) };
+                if (CssValues.IsColor(theme.GradientVia))
+                {
+                    stops.Add(theme.GradientVia.Trim());
+                }
+
+                stops.Add(CssValues.Color(theme.GradientTo, bg));
+                int angle = CssValues.Clamp(theme.GradientAngle, 0, 360);
+                return $"background-color:{bg};background-image:linear-gradient({angle}deg, {string.Join(", ", stops)});";
+            }
+            case "image" when CssValues.IsUrl(theme.BackgroundImageUrl):
+            {
+                string dim = (Math.Max(CssValues.Clamp(theme.BackgroundDim, 0, 95), 35) / 100.0).ToString(CultureInfo.InvariantCulture);
+                return $"background-color:{bg};" +
+                       $"background-image:linear-gradient(rgba(0,0,0,{dim}), rgba(0,0,0,{dim})), url(\"{api.Resolve(theme.BackgroundImageUrl)}\");" +
+                       "background-size:cover;background-position:center;";
+            }
+            case "pattern":
+                return $"background-color:{bg};{Pattern(theme.Pattern)}";
+            default:
+                return $"background-color:{bg};";
+        }
+    }
+
     public static string Pattern(string? pattern)
     {
         return pattern switch
@@ -130,7 +163,8 @@ public static class ThemeCss
     {
         return $"--ax:{CssValues.Clamp(theme.AvatarX, 0, 100)}%;" +
                $"--ay:{CssValues.Clamp(theme.AvatarY, 0, 160)}%;" +
-               $"--aw:{CssValues.Clamp(theme.AvatarSize, 4, 45)}%;";
+               $"--aw:{CssValues.Clamp(theme.AvatarSize, 4, 45)}%;" +
+               $"--awn:{CssValues.Clamp(theme.AvatarSize, 4, 45)};";
     }
 
     public static List<string> FontUrls(params string?[] fonts)

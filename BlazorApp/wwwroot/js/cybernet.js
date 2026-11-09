@@ -84,6 +84,18 @@ window.cybernet = {
                     else right = b.right - a.left + 20;
                 }
             }
+            // the sidebar layout puts the name column and the modules side by side under the banner:
+            // push down whichever of them the avatar hangs over
+            const below = (el) => {
+                if (!el || overflow <= 0) return 0;
+                const r = el.getBoundingClientRect();
+                return a.left < r.right && a.right > r.left ? overflow : 0;
+            };
+            const inner = header.closest('.profile-inner');
+            const sidebar = !!header.closest('.layout-sidebar') && getComputedStyle(header).display === 'contents';
+            header.style.setProperty('--avatar-id-pad', (sidebar ? below(header.querySelector('.profile-id')) : 0) + 'px');
+            // the modules are not inside the header, so their variable goes on the shared parent
+            if (inner) inner.style.setProperty('--avatar-grid-pad', (sidebar ? below(inner.querySelector('.profile-grid')) : 0) + 'px');
             header.style.setProperty('--avatar-overflow', overflow + 'px');
             header.style.setProperty('--avatar-indent-left', left + 'px');
             header.style.setProperty('--avatar-indent-right', right + 'px');

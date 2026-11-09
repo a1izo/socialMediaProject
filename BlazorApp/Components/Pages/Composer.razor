@@ -15,7 +15,7 @@
 
         <input class="input composer-title" @bind="title" @bind:event="oninput" maxlength="140" placeholder="title (optional)" />
         <textarea class="input composer-body" rows="6" @bind="body" @bind:event="oninput"
-                  placeholder="what's going on?"></textarea>
+                  placeholder="write something"></textarea>
 
         @if (media.Count > 0 || uploading > 0)
         {

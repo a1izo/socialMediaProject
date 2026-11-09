@@ -1,0 +1,86 @@
+@inject IPostService PostService
+@inject IUserService UserService
+@inject ProfileCardCache CardCache
+@inject NavigationManager NavMgr
+
+@* The column next to the feed: search, profiles that just changed their look (shown in that look),
+   and the tags people post with. *@
+<aside class="rail">
+    @if (ShowSearch)
+    {
+    <form class="rail-search" @onsubmit="Search" @onsubmit:preventDefault>
+        <Icon Name="search" Size="16" />
+        <input class="input" placeholder="search people, posts, tags" @bind="query" aria-label="search" />
+    </form>
+    }
+
+    @if (restyled.Count > 0)
+    {
+        <section class="rail-section">
+            <h2 class="rail-label">recently restyled</h2>
+            <div class="rail-rooms">
+                @foreach (ProfileCardDto card in restyled)
+                {
+                    <UserTile @key="card.UserId" Card="card" />
+                }
+            </div>
+        </section>
+    }
+
+    @if (tags.Count > 0)
+    {
+        <section class="rail-section">
+            <h2 class="rail-label">tags</h2>
+            <div class="tag-row">
+                @foreach ((TagDto tag, int count) in tags)
+                {
+                    <a class="tag-chip" href="/?tag=@tag.Id">#@tag.Name <span class="rail-count">@count</span></a>
+                }
+            </div>
+        </section>
+    }
+</aside>
+
+@code {
+    // the search page has its own search box
+    [Parameter] public bool ShowSearch { get; set; } = true;
+
+    private string query = "";
+    private List<ProfileCardDto> restyled = new();
+    private List<(TagDto Tag, int Count)> tags = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            List<PostDto> recent = await PostService.GetPostsAsync(new PostQuery { Take = 80 });
+            tags = recent.SelectMany(p => p.Tags)
+                .GroupBy(t => t.Id)
+                .Select(g => (g.First(), g.Count()))
+                .OrderByDescending(t => t.Item2)
+                .Take(12)
+                .ToList();
+
+            List<int> ids = (await UserService.GetUsersAsync()).Select(u => u.Id).ToList();
+            await CardCache.EnsureAsync(ids);
+            restyled = ids.Select(id => CardCache.Get(id))
+                .Where(c => c is not null)
+                .Select(c => c!)
+                .OrderByDescending(c => c.UpdatedDate)
+                .Take(4)
+                .ToList();
+        }
+        catch (Exception)
+        {
+            // the column is extra; the page works without it
+        }
+    }
+
+    private void Search()
+    {
+        if (!string.IsNullOrWhiteSpace(query))
+        {
+            NavMgr.NavigateTo($"/search?q={Uri.EscapeDataString(query)}");
+        }
+    }
+}

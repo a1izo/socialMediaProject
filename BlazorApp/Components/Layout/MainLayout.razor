@@ -2,57 +2,92 @@
 @implements IDisposable
 @inject ShellThemeService ShellTheme
 @inject ActivityService Activity
+@inject ProfileCardCache CardCache
 @inject AuthenticationStateProvider AuthProvider
 @inject NavigationManager NavMgr
 
 <div class="shell">
     <div class="shell-grain" aria-hidden="true"></div>
-    <div class="shell-scan" aria-hidden="true"></div>
 
-    <header class="topbar">
-        <a class="brand" href="/" aria-label="cybernet home"><Wordmark /></a>
+    <aside class="sidebar" aria-label="main">
+        <a class="sidebar-brand" href="/" aria-label="cybernet home">
+            <span class="brand-full"><Wordmark /></span>
+            <span class="brand-mark"><StarGlyph Size="22" /></span>
+        </a>
 
-        <nav class="topnav" aria-label="main">
-            <NavLink class="topnav-link" href="/" Match="NavLinkMatch.All"><Icon Name="home" Size="16" /> feed</NavLink>
-            <NavLink class="topnav-link" href="/search"><Icon Name="search" Size="16" /> search</NavLink>
+        <nav class="side-nav">
+            <NavLink class="side-link" title="feed" href="/" Match="NavLinkMatch.All"><Icon Name="home" Size="22" /><span>feed</span></NavLink>
+            <NavLink class="side-link" title="search" href="/search"><Icon Name="search" Size="22" /><span>search</span></NavLink>
             <AuthorizeView>
                 <Authorized>
-                    <NavLink class="topnav-link" href="/post"><Icon Name="plus" Size="16" /> post</NavLink>
-                    <NavLink class="topnav-link" href="/messages">
-                        <Icon Name="message" Size="16" /> messages
-                        <Badge Count="@(Activity.Counts.Messages + Activity.Counts.Requests)" />
+                    <NavLink class="side-link" title="notifications" href="/notifications">
+                        <span class="side-icon"><Icon Name="bell" Size="22" /><Badge Count="@Activity.Counts.Notifications" /></span>
+                        <span>notifications</span>
                     </NavLink>
+                    <NavLink class="side-link" title="messages" href="/messages">
+                        <span class="side-icon"><Icon Name="message" Size="22" /><Badge Count="@(Activity.Counts.Messages + Activity.Counts.Requests)" /></span>
+                        <span>messages</span>
+                    </NavLink>
+                    <NavLink class="side-link" title="your profile" href="@($"/u/{context.User.Identity?.Name}")"><Icon Name="user" Size="22" /><span>profile</span></NavLink>
+                    <NavLink class="side-link" title="settings" href="/settings"><Icon Name="gear" Size="22" /><span>settings</span></NavLink>
                 </Authorized>
             </AuthorizeView>
         </nav>
 
-        <div class="topbar-right">
-            <button class="icon-btn" type="button" @onclick="ShellTheme.ToggleAsync"
-                    title="@(ShellTheme.Mode == "void" ? "light mode" : "dark mode")" aria-label="switch between light and dark mode">
-                <Icon Name="@(ShellTheme.Mode == "void" ? "sun" : "moon")" />
+        <AuthorizeView>
+            <Authorized>
+                <a class="side-post" href="/post" title="new post" aria-label="new post"><StarGlyph Size="22" /></a>
+            </Authorized>
+        </AuthorizeView>
+
+        <div class="side-foot">
+            <button class="side-link side-theme" type="button" @onclick="ShellTheme.ToggleAsync"
+                    aria-label="switch between light and dark mode">
+                <Icon Name="@(ShellTheme.Mode == "void" ? "sun" : "moon")" Size="22" />
+                <span>@(ShellTheme.Mode == "void" ? "light mode" : "dark mode")</span>
             </button>
             <AuthorizeView>
                 <Authorized>
-                    <NavLink class="icon-btn has-badge" href="/notifications" title="notifications" aria-label="notifications">
-                        <Icon Name="bell" />
-                        <Badge Count="@Activity.Counts.Notifications" />
-                    </NavLink>
-                    <AuthorizeView Policy="@ClaimsExtensions.ModeratorPolicy" Context="modContext">
-                        <span class="mod-badge" title="you're a moderator"><Icon Name="shield" Size="14" /> mod</span>
-                    </AuthorizeView>
-                    <a class="me-link" href="/u/@context.User.Identity?.Name">
-                        <StarGlyph Size="10" />
-                        <span>@context.User.Identity?.Name</span>
-                    </a>
-                    <a class="icon-btn" href="/settings" title="settings" aria-label="settings"><Icon Name="gear" /></a>
-                    <button class="icon-btn" type="button" @onclick="LogoutAsync" title="log out" aria-label="log out"><Icon Name="logout" /></button>
+                    <div class="side-account">
+                        <a class="side-account-link" href="/u/@context.User.Identity?.Name">
+                            <Avatar Url="@me?.AvatarUrl" Name="@(me?.DisplayName ?? context.User.Identity?.Name)" Shape="@me?.Theme.AvatarShape" Size="36" />
+                            <span class="side-account-text">
+                                <b>@(me?.DisplayName ?? context.User.Identity?.Name)</b>
+                                <span>@@@context.User.Identity?.Name
+                                    <AuthorizeView Policy="@ClaimsExtensions.ModeratorPolicy" Context="modContext"> · mod</AuthorizeView>
+                                </span>
+                            </span>
+                        </a>
+                        <button class="icon-btn" type="button" @onclick="LogoutAsync" title="log out" aria-label="log out"><Icon Name="logout" /></button>
+                    </div>
                 </Authorized>
                 <NotAuthorized>
-                    <a class="btn btn-sm btn-ghost" href="/login">log in</a>
-                    <a class="btn btn-sm btn-primary" href="/register">sign up</a>
+                    <div class="side-auth">
+                        <a class="btn btn-primary" href="/register">sign up</a>
+                        <a class="btn" href="/login">log in</a>
+                    </div>
                 </NotAuthorized>
             </AuthorizeView>
         </div>
+    </aside>
+
+    <header class="mobile-top">
+        <a class="sidebar-brand" href="/" aria-label="cybernet home"><Wordmark /></a>
+        <span class="spacer"></span>
+        <button class="icon-btn" type="button" @onclick="ShellTheme.ToggleAsync" aria-label="switch between light and dark mode">
+            <Icon Name="@(ShellTheme.Mode == "void" ? "sun" : "moon")" />
+        </button>
+        <AuthorizeView>
+            <Authorized>
+                <NavLink class="icon-btn has-badge" href="/notifications" aria-label="notifications">
+                    <Icon Name="bell" /><Badge Count="@Activity.Counts.Notifications" />
+                </NavLink>
+                <NavLink class="icon-btn" href="/settings" aria-label="settings"><Icon Name="gear" /></NavLink>
+            </Authorized>
+            <NotAuthorized>
+                <a class="btn btn-sm" href="/login">log in</a>
+            </NotAuthorized>
+        </AuthorizeView>
     </header>
 
     <main class="page">
@@ -60,26 +95,26 @@
     </main>
 
     <nav class="bottombar" aria-label="mobile">
-        <NavLink class="bottombar-link" href="/" Match="NavLinkMatch.All"><Icon Name="home" /><span>feed</span></NavLink>
-        <NavLink class="bottombar-link" href="/search"><Icon Name="search" /><span>search</span></NavLink>
+        <NavLink class="bottombar-link" href="/" Match="NavLinkMatch.All"><Icon Name="home" Size="22" /></NavLink>
+        <NavLink class="bottombar-link" href="/search"><Icon Name="search" Size="22" /></NavLink>
         <AuthorizeView>
             <Authorized>
-                <NavLink class="bottombar-link bottombar-main" href="/post"><Icon Name="plus" /><span>post</span></NavLink>
-                <NavLink class="bottombar-link has-badge" href="/messages">
-                    <Icon Name="message" /><span>messages</span>
-                    <Badge Count="@(Activity.Counts.Messages + Activity.Counts.Requests)" />
+                <NavLink class="bottombar-link bottombar-main" href="/post" aria-label="new post"><Icon Name="plus" Size="22" /></NavLink>
+                <NavLink class="bottombar-link has-badge" href="/messages" aria-label="messages">
+                    <Icon Name="message" Size="22" /><Badge Count="@(Activity.Counts.Messages + Activity.Counts.Requests)" />
                 </NavLink>
-                <NavLink class="bottombar-link" href="@($"/u/{context.User.Identity?.Name}")"><Icon Name="user" /><span>me</span></NavLink>
+                <NavLink class="bottombar-link" href="@($"/u/{context.User.Identity?.Name}")" aria-label="your profile"><Icon Name="user" Size="22" /></NavLink>
             </Authorized>
             <NotAuthorized>
-                <NavLink class="bottombar-link bottombar-main" href="/register"><Icon Name="sparkle" /><span>sign up</span></NavLink>
-                <NavLink class="bottombar-link" href="/login"><Icon Name="login" /><span>log in</span></NavLink>
+                <NavLink class="bottombar-join" href="/register">sign up</NavLink>
             </NotAuthorized>
         </AuthorizeView>
     </nav>
 </div>
 
 @code {
+    private ProfileCardDto? me;
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -88,7 +123,7 @@
             Activity.Changed += OnChanged;
             AuthProvider.AuthenticationStateChanged += OnAuthChanged;
             await ShellTheme.InitializeAsync();
-            await UpdateActivityAsync(AuthProvider.GetAuthenticationStateAsync());
+            await UpdateUserAsync(AuthProvider.GetAuthenticationStateAsync());
         }
     }
 
@@ -99,20 +134,33 @@
 
     private void OnAuthChanged(Task<AuthenticationState> state)
     {
-        _ = InvokeAsync(() => UpdateActivityAsync(state));
+        _ = InvokeAsync(() => UpdateUserAsync(state));
     }
 
-    private async Task UpdateActivityAsync(Task<AuthenticationState> state)
+    private async Task UpdateUserAsync(Task<AuthenticationState> state)
     {
         int? userId = (await state).User.GetUserId();
         if (userId is null)
         {
             Activity.Stop();
+            me = null;
         }
         else
         {
             Activity.Start(userId.Value);
+            try
+            {
+                CardCache.Invalidate(userId.Value);
+                await CardCache.EnsureAsync(new[] { userId.Value });
+                me = CardCache.Get(userId.Value);
+            }
+            catch (Exception)
+            {
+                me = null;
+            }
         }
+
+        StateHasChanged();
     }
 
     private async Task LogoutAsync()

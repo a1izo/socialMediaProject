@@ -1,0 +1,1823 @@
+/* ==========================================================================
+   The app frame around the profiles: sidebar, timeline, forms, lists.
+   Quiet on purpose, so profiles are the loud part of cybernet.
+   Loaded after components.css (it restyles shared pieces) and before
+   profile.css (so a profile's own theme still wins inside it).
+   ========================================================================== */
+
+/* ---------- layout sizes ---------- */
+
+@media (min-width: 761px) {
+    :root {
+        --topbar-h: 0px;
+        --sidebar-w: 76px;
+    }
+}
+
+
+body {
+    font-size: 15px;
+    letter-spacing: -0.005em;
+}
+
+.shell {
+    padding-left: var(--sidebar-w);
+}
+
+/* the old top bar is gone */
+.topbar,
+.shell-scan {
+    display: none;
+}
+
+/* ---------- sidebar ---------- */
+
+.sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: var(--sidebar-w);
+    padding: 14px 12px;
+    background: var(--bg);
+    border-right: 1px solid var(--line);
+}
+
+.sidebar-brand {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 14px 18px;
+    color: var(--text);
+    text-decoration: none;
+}
+
+.sidebar-brand:hover {
+    color: var(--text);
+}
+
+.brand-mark {
+    display: none;
+    color: var(--accent);
+}
+
+.side-nav {
+    display: grid;
+    gap: 2px;
+}
+
+.side-link {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+    padding: 10px 14px;
+    font: inherit;
+    font-size: 17px;
+    font-weight: 500;
+    color: var(--text);
+    text-decoration: none;
+    background: transparent;
+    border: 0;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background var(--dur) var(--ease);
+}
+
+.side-link:hover {
+    color: var(--text);
+    background: color-mix(in srgb, var(--text) 7%, transparent);
+}
+
+.side-link.active {
+    font-weight: 700;
+}
+
+.side-link.active .icon {
+    color: var(--accent);
+    stroke-width: 2.2;
+}
+
+.side-icon {
+    position: relative;
+    display: inline-grid;
+}
+
+.side-icon .count-badge {
+    position: absolute;
+    top: -6px;
+    right: -9px;
+}
+
+.side-post {
+    width: 100%;
+    min-height: 48px;
+    margin-top: 14px;
+    font-size: 16px;
+}
+
+.side-foot {
+    margin-top: auto;
+    display: grid;
+    gap: 6px;
+}
+
+.side-theme {
+    font-size: 15px;
+    color: var(--muted);
+}
+
+.side-account {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px;
+    border-radius: 999px;
+}
+
+.side-account:hover {
+    background: color-mix(in srgb, var(--text) 6%, transparent);
+}
+
+.side-account-link {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+}
+
+.side-account-link:hover {
+    color: var(--text);
+}
+
+.side-account-text {
+    display: grid;
+    min-width: 0;
+    line-height: 1.25;
+}
+
+.side-account-text b,
+.side-account-text span {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.side-account-text span {
+    font-size: 13px;
+    color: var(--muted);
+}
+
+.side-auth {
+    display: grid;
+    gap: 8px;
+}
+
+/* the nav is a slim glyph rail at every desktop width; labels show as tooltips */
+@media (min-width: 761px) {
+    .sidebar {
+        align-items: center;
+        padding: 14px 10px;
+    }
+
+    .brand-full,
+    .side-link > span:not(.side-icon),
+    .side-post span,
+    .side-account-text,
+    .side-account .icon-btn {
+        display: none;
+    }
+
+    .brand-mark {
+        display: inline-grid;
+    }
+
+    .sidebar-brand {
+        padding: 10px 0 18px;
+    }
+
+    .side-link {
+        justify-content: center;
+        width: 52px;
+        height: 52px;
+        padding: 0;
+    }
+
+    .side-post {
+        width: 52px;
+        min-height: 52px;
+        padding: 0;
+    }
+
+    .side-account {
+        padding: 4px;
+    }
+
+    .side-auth .btn {
+        justify-content: center;
+        width: 56px;
+        padding: 7px 0;
+        font-size: 12px;
+        white-space: nowrap;
+    }
+}
+
+/* ---------- phone: slim top bar + bottom bar ---------- */
+
+.mobile-top {
+    display: none;
+}
+
+@media (max-width: 760px) {
+    .sidebar {
+        display: none;
+    }
+
+    .mobile-top {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        height: 56px;
+        padding: 0 12px;
+        background: color-mix(in srgb, var(--bg) 88%, transparent);
+        backdrop-filter: blur(12px);
+        border-bottom: 1px solid var(--line);
+    }
+
+    :root {
+        --topbar-h: 56px;
+    }
+
+    .mobile-top .sidebar-brand {
+        padding: 0;
+    }
+
+    .bottombar {
+        padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+    }
+
+    .bottombar-link {
+        position: relative;
+        justify-content: center;
+        min-width: 52px;
+        height: 44px;
+        border-radius: 999px;
+        color: var(--muted);
+    }
+
+    .bottombar-link.active {
+        color: var(--text);
+    }
+
+    .bottombar-main {
+        color: var(--on-accent);
+        background: var(--accent);
+    }
+}
+
+/* ---------- typography + small parts ---------- */
+
+.hud-label {
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--muted);
+}
+
+.profile-root .hud-label {
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.display {
+    font-size: clamp(1.8rem, 1.3rem + 1.6vw, 2.6rem);
+    letter-spacing: -0.03em;
+}
+
+.section-title {
+    font-family: var(--font-body);
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+
+.section-title .count {
+    font-family: var(--font-body);
+    font-weight: 500;
+    color: var(--muted);
+}
+
+.field-label,
+.ed-label {
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--text);
+}
+
+.loading {
+    font-family: var(--font-body);
+    font-size: 14px;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+/* ---------- buttons ---------- */
+
+.btn {
+    min-height: 38px;
+    padding: 8px 18px;
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+    background: transparent;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+}
+
+.btn:hover {
+    color: var(--text);
+    background: color-mix(in srgb, var(--text) 6%, transparent);
+    border-color: var(--line);
+}
+
+.btn-primary,
+.btn-primary:hover {
+    color: var(--on-accent);
+    background: var(--accent);
+    border-color: var(--accent);
+    box-shadow: none;
+    transform: none;
+}
+
+.btn-primary:hover {
+    filter: brightness(1.08);
+}
+
+.btn-ghost {
+    border-color: transparent;
+}
+
+.btn-sm {
+    min-height: 32px;
+    padding: 4px 14px;
+    font-size: 13px;
+}
+
+.btn-lg {
+    min-height: 46px;
+    padding: 10px 24px;
+    font-size: 15px;
+}
+
+.icon-btn {
+    border: 0;
+    border-radius: 999px;
+}
+
+.icon-btn:hover {
+    background: color-mix(in srgb, var(--text) 7%, transparent);
+}
+
+/* ---------- inputs ---------- */
+
+.input {
+    font-family: var(--font-body);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+}
+
+.input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+/* ---------- cards (replaces the bracketed hud frame outside profiles) ---------- */
+
+.hud-frame {
+    padding: 28px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+}
+
+.hud-frame::before,
+.hud-frame::after {
+    display: none;
+}
+
+.hud-frame > .hud-label:first-child {
+    position: static;
+    padding: 0;
+    background: none;
+    color: var(--muted);
+}
+
+/* ---------- pills, tabs, chips ---------- */
+
+.segmented {
+    gap: 2px;
+    padding: 3px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+}
+
+.segmented > button,
+.segmented > a {
+    padding: 6px 14px;
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+    border-radius: 999px;
+}
+
+.segmented > * + * {
+    border-left: 0 !important;
+}
+
+.segmented > .is-active {
+    color: var(--bg);
+    background: var(--text);
+}
+
+.tag-chip {
+    padding: 5px 12px;
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--line);
+}
+
+.tag-chip:hover {
+    border-color: var(--muted);
+}
+
+.tag-chip.is-active {
+    color: var(--bg);
+    background: var(--text);
+    border-color: var(--text);
+}
+
+.error-banner {
+    border-radius: 12px;
+}
+
+.empty-state {
+    border: 0;
+}
+
+/* ---------- timeline ---------- */
+
+.timeline {
+    display: grid;
+    grid-template-columns: minmax(0, 620px) 340px;
+    justify-content: center;
+    gap: 28px;
+    padding: 0 20px;
+}
+
+.timeline-main {
+    min-width: 0;
+    min-height: 100vh;
+    border-left: 1px solid var(--line);
+    border-right: 1px solid var(--line);
+}
+
+.timeline-page {
+    padding-bottom: 64px;
+}
+
+.timeline-page > :not(.timeline-head):not(.post-list):not(.notification-list):not(.post-full) {
+    margin-left: 16px;
+    margin-right: 16px;
+}
+
+.timeline-head {
+    position: sticky;
+    top: var(--topbar-h);
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 54px;
+    padding: 0 8px;
+    background: color-mix(in srgb, var(--bg) 85%, transparent);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--line);
+}
+
+.timeline-title {
+    padding: 0 8px;
+    font-family: var(--font-body);
+    font-size: 19px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+
+.tabs {
+    flex: 1;
+    display: flex;
+    align-self: stretch;
+}
+
+.tab {
+    position: relative;
+    flex: 1;
+    padding: 0 12px;
+    font: inherit;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--muted);
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    transition: background var(--dur) var(--ease);
+}
+
+.tab:hover {
+    background: color-mix(in srgb, var(--text) 5%, transparent);
+}
+
+.tab.is-active {
+    font-weight: 700;
+    color: var(--text);
+}
+
+.tab.is-active::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    width: 56px;
+    height: 4px;
+    margin-left: -28px;
+    background: var(--accent);
+    border-radius: 999px;
+}
+
+.timeline-sort {
+    padding: 6px 10px;
+    font: inherit;
+    font-size: 13px;
+    color: var(--muted);
+    background: transparent;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    cursor: pointer;
+}
+
+.guest-bar,
+.timeline-filter {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 16px;
+    font-size: 14px;
+    color: var(--muted);
+    border: 0;
+    border-bottom: 1px solid var(--line);
+    border-radius: 0;
+}
+
+.guest-bar span,
+.timeline-filter span {
+    flex: 1;
+}
+
+.timeline-filter b {
+    color: var(--text);
+}
+
+.timeline-empty {
+    display: grid;
+    justify-items: center;
+    gap: 12px;
+    padding: 64px 24px;
+    text-align: center;
+    color: var(--muted);
+}
+
+.timeline .loading {
+    justify-content: center;
+}
+
+@media (max-width: 1099px) {
+    .timeline {
+        grid-template-columns: minmax(0, 620px);
+    }
+
+    .rail {
+        display: none;
+    }
+}
+
+@media (max-width: 760px) {
+    .timeline {
+        padding: 0;
+    }
+
+    .timeline-main {
+        border: 0;
+    }
+}
+
+/* ---------- quick composer ---------- */
+
+.quick-composer {
+    display: grid;
+    grid-template-columns: 40px minmax(0, 1fr);
+    gap: 12px;
+    padding: 14px 16px 10px;
+    border-bottom: 1px solid var(--line);
+}
+
+.quick-composer-main {
+    display: grid;
+    gap: 10px;
+    min-width: 0;
+}
+
+.quick-composer-input {
+    width: 100%;
+    padding: 8px 0;
+    font: inherit;
+    font-size: 18px;
+    line-height: 1.4;
+    color: var(--text);
+    background: transparent;
+    border: 0;
+    resize: none;
+}
+
+.quick-composer-input:focus {
+    outline: none;
+}
+
+.quick-composer-input::placeholder {
+    color: var(--muted);
+}
+
+.quick-composer-bar {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding-top: 8px;
+    border-top: 1px solid var(--line);
+}
+
+.quick-composer-tool {
+    color: var(--accent);
+    cursor: pointer;
+}
+
+.quick-composer-tool.is-disabled {
+    opacity: 0.4;
+    pointer-events: none;
+}
+
+/* ---------- post rows ---------- */
+
+.post-list {
+    display: block;
+}
+
+.post {
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr);
+    gap: 12px;
+    padding: 14px 16px 6px;
+    border-bottom: 1px solid var(--line);
+    transition: background var(--dur) var(--ease);
+}
+
+.post:hover {
+    background: color-mix(in srgb, var(--text) 2.5%, transparent);
+}
+
+.post:not(:has(.post-avatar)) {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.post-avatar {
+    display: block;
+}
+
+.post-main {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+}
+
+.post-head {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    min-width: 0;
+    font-size: 15px;
+}
+
+.post-dot,
+.post-time {
+    flex: none;
+    color: var(--muted);
+    text-decoration: none;
+}
+
+.post-time:hover {
+    text-decoration: underline;
+    color: var(--muted);
+}
+
+.user-chip.is-inline {
+    min-width: 0;
+}
+
+.user-chip.is-inline .user-chip-text {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 6px;
+    min-width: 0;
+}
+
+.user-chip.is-inline .user-chip-name {
+    font-size: 15px;
+    font-weight: 700;
+    border-bottom: 0;
+}
+
+.user-chip.is-inline .user-chip-handle {
+    overflow: hidden;
+    font-family: var(--font-body);
+    font-size: 15px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.user-chip.is-inline .user-chip-link:hover .user-chip-name {
+    text-decoration: underline;
+}
+
+.post-title {
+    font-size: 17px;
+    font-weight: 700;
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+    text-decoration: none;
+}
+
+.post-title:hover {
+    color: var(--text);
+}
+
+.post-text {
+    font-size: 15px;
+    line-height: 1.5;
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+    text-decoration: none;
+}
+
+.post-text:hover {
+    color: var(--text);
+}
+
+.post .media-grid {
+    margin-top: 8px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+}
+
+.post-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 10px;
+    margin-top: 2px;
+}
+
+.post-tag {
+    font-size: 14px;
+    color: var(--accent-2);
+    text-decoration: none;
+}
+
+.post-tag:hover {
+    color: var(--accent-2);
+    text-decoration: underline;
+}
+
+.post-actions {
+    display: flex;
+    align-items: center;
+    gap: 36px;
+    margin-left: -8px;
+}
+
+.post-action,
+.like-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 36px;
+    padding: 7px 8px;
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--muted);
+    text-decoration: none;
+    background: transparent;
+    border: 0;
+    border-radius: 999px;
+    cursor: pointer;
+}
+
+.post-action:hover {
+    color: var(--accent-2);
+    background: color-mix(in srgb, var(--accent-2) 12%, transparent);
+}
+
+.like-button:hover {
+    color: var(--accent);
+    border-color: transparent;
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.like-button.is-liked {
+    color: var(--accent);
+}
+
+/* inside a profile module: a small card, in the profile's theme */
+.post.post-compact {
+    display: block;
+    padding: 12px 14px;
+    background: color-mix(in srgb, var(--surface-2) 50%, transparent);
+    border: var(--border-w, 1px) solid var(--line);
+    border-radius: var(--radius);
+}
+
+.post-compact + .post-compact {
+    margin-top: 8px;
+}
+
+.post-compact .post-actions {
+    gap: 16px;
+}
+
+/* ---------- right rail ---------- */
+
+.rail {
+    position: sticky;
+    top: 0;
+    align-self: start;
+    display: grid;
+    gap: 16px;
+    max-height: 100vh;
+    padding: 10px 0 24px;
+    overflow-y: auto;
+    scrollbar-width: none;
+}
+
+.rail-search {
+    position: relative;
+}
+
+.rail-search .icon {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+}
+
+.rail-search .input {
+    padding: 11px 16px 11px 42px;
+    background: var(--surface);
+    border-radius: 999px;
+}
+
+.rail-box {
+    display: grid;
+    padding: 14px 16px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+}
+
+.rail-title {
+    margin-bottom: 6px;
+    font-family: var(--font-body);
+    font-size: 19px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+
+.rail-tag {
+    display: grid;
+    padding: 9px 0;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.rail-tag:hover {
+    color: var(--text);
+}
+
+.rail-tag:hover span:first-child {
+    text-decoration: underline;
+}
+
+.rail-meta {
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--muted);
+}
+
+.rail-person {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 9px 0;
+}
+
+.rail-person .user-chip {
+    flex: 1;
+}
+
+.rail-more {
+    padding-top: 8px;
+    font-size: 14px;
+    color: var(--accent-2);
+    text-decoration: none;
+}
+
+/* ---------- post page ---------- */
+
+.post-full {
+    display: grid;
+    gap: 12px;
+    padding: 16px;
+    background: none;
+    border: 0;
+    border-bottom: 1px solid var(--line);
+}
+
+.post-full::before,
+.post-full::after {
+    display: none;
+}
+
+.post-full > .hud-label {
+    order: 3;
+    font-size: 14px;
+}
+
+.post-full-title {
+    margin: 0;
+    font-family: var(--font-body);
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.post-full-body {
+    font-size: 17px;
+    line-height: 1.55;
+}
+
+.post-full-actions {
+    order: 4;
+    padding-top: 6px;
+}
+
+.comments {
+    gap: 0;
+}
+
+.comments .section-title {
+    margin: 20px 0 12px;
+}
+
+.comment {
+    padding: 12px 0;
+    background: none;
+    border: 0;
+    border-bottom: 1px solid var(--line);
+    border-radius: 0;
+}
+
+.comment-replies {
+    padding-left: 18px;
+    border-left: 2px solid var(--line);
+}
+
+.comment-replies .comment {
+    background: none;
+}
+
+.comment-replies .comment:last-child {
+    border-bottom: 0;
+}
+
+/* ---------- notifications ---------- */
+
+.notification-list {
+    border: 0;
+    border-radius: 0;
+}
+
+.notification {
+    padding: 14px 16px;
+    transition: background var(--dur) var(--ease);
+}
+
+.notification:hover {
+    background: color-mix(in srgb, var(--text) 2.5%, transparent);
+}
+
+.notification-icon {
+    border: 0;
+}
+
+.notification-time {
+    font-family: var(--font-body);
+    font-size: 13px;
+}
+
+/* ---------- search ---------- */
+
+.search-head {
+    margin-top: 12px;
+}
+
+.search-box-lg .input {
+    padding: 12px 16px 12px 44px;
+    font-size: 16px;
+    border-radius: 999px;
+}
+
+.search-section .section-title {
+    margin-bottom: 12px;
+}
+
+.timeline-page .user-grid {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+}
+
+/* ---------- messages ---------- */
+
+.messages {
+    border-top: 0;
+}
+
+.chat-heading {
+    font-family: var(--font-body);
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.chat-row {
+    border-bottom: 0;
+}
+
+.chat-row.is-active {
+    box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.bubble {
+    border-radius: 18px 18px 18px 6px;
+}
+
+.bubble.is-mine {
+    border-radius: 18px 18px 6px 18px;
+}
+
+.chat-compose .input {
+    border-radius: 999px;
+}
+
+/* ---------- composer page ---------- */
+
+.composer-heading {
+    font-family: var(--font-body);
+    font-size: 22px;
+    font-weight: 700;
+}
+
+.composer-title {
+    font-family: var(--font-body);
+    font-weight: 600;
+}
+
+/* follow buttons in lists stay neutral; the accent is for posting and liking */
+.rail .btn-primary,
+.user-tile .btn-primary {
+    color: var(--bg);
+    background: var(--text);
+    border-color: var(--text);
+}
+
+.user-chip-handle {
+    font-family: var(--font-body);
+    font-size: 13px;
+}
+
+/* ==========================================================================
+   Posts wear their author's theme
+   Each themed post gets the author's variables (--bg, --text, --accent, fonts...)
+   and background inline. The structure never changes, so the feed stays readable.
+   ========================================================================== */
+
+.timeline-main {
+    border-left: 0;
+    border-right: 0;
+}
+
+.timeline-main > .post-list {
+    display: grid;
+    gap: 14px;
+    padding: 14px 0 48px;
+}
+
+.timeline-main > .post-list > .post:not(.post-themed) {
+    border: 1px solid var(--line);
+    border-radius: 18px;
+}
+
+.post-themed {
+    position: relative;
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: var(--base-size, 15px);
+    border: 0;
+    border-radius: min(var(--radius), 22px);
+    box-shadow: 0 0 calc(var(--glow) * 0.6) color-mix(in srgb, var(--glow-color) 55%, transparent);
+    transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+
+.post.post-themed:hover {
+    background-color: var(--bg);
+    transform: translateY(-2px);
+}
+
+.post-themed .user-chip-name,
+.post-themed .post-title {
+    font-family: var(--font-display);
+    text-transform: var(--heading-case);
+    letter-spacing: var(--tracking);
+    color: var(--text);
+}
+
+.post-themed .user-chip-name {
+    font-size: 15px;
+}
+
+.post-themed .post-title {
+    font-size: 19px;
+}
+
+.post-themed .post-text,
+.post-themed .post-full-body {
+    color: var(--text);
+}
+
+/* a theme's "muted" color is picked against its card surface, not its background, so derive
+   secondary text from the post's own text and background: it always contrasts */
+.post-themed .user-chip-handle,
+.post-themed .post-dot,
+.post-themed .post-time,
+.post-themed > .hud-label {
+    color: color-mix(in srgb, var(--text) 68%, var(--bg));
+}
+
+.post-themed .media-grid {
+    border-color: var(--line);
+    border-radius: max(6px, calc(min(var(--radius), 22px) - 6px));
+}
+
+/* a small dock in the author's surface color, so a red heart is visible even on a red post */
+.post-themed .post-actions,
+.post-themed .post-full-actions {
+    width: fit-content;
+    margin: 6px 0 4px;
+    padding: 0 6px;
+    gap: 14px;
+    background: color-mix(in srgb, var(--surface) 82%, transparent);
+    border: 1px solid color-mix(in srgb, var(--line) 60%, transparent);
+    border-radius: 999px;
+}
+
+.post-themed .post-full-actions {
+    width: auto;
+    padding: 2px 8px;
+    border-top: 1px solid color-mix(in srgb, var(--line) 60%, transparent);
+}
+
+.post-themed .post-action,
+.post-themed .like-button {
+    color: var(--text);
+}
+
+.post-themed .like-button.is-liked {
+    color: var(--accent);
+}
+
+.post-themed .post-tag {
+    color: var(--accent);
+    font-weight: 600;
+}
+
+/* the author's card style, translated to a feed card */
+.post-style-solid {
+    border: var(--border-w) solid var(--line);
+}
+
+.post-style-outline {
+    border: max(1px, var(--border-w)) solid var(--line);
+}
+
+.post-style-glass {
+    border: 1px solid color-mix(in srgb, var(--text) 22%, transparent);
+    box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 18%, transparent), 0 0 calc(var(--glow) * 0.6) color-mix(in srgb, var(--glow-color) 55%, transparent);
+}
+
+.post-style-brutal {
+    border: max(2px, var(--border-w)) solid var(--line);
+    box-shadow: 5px 5px 0 0 var(--line);
+}
+
+.post.post-style-brutal:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 7px 7px 0 0 var(--line);
+}
+
+.post-style-hud {
+    border: 1px solid var(--line);
+}
+
+.post-style-hud::before,
+.post-style-hud::after {
+    content: "";
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    pointer-events: none;
+    border: 0 solid var(--accent);
+}
+
+.post-style-hud::before {
+    top: -1px;
+    left: -1px;
+    border-width: 2px 0 0 2px;
+}
+
+.post-style-hud::after {
+    right: -1px;
+    bottom: -1px;
+    border-width: 0 2px 2px 0;
+}
+
+/* the main post on its own page */
+.post-full.post-themed {
+    margin: 14px 16px;
+    padding: 20px;
+}
+
+.search-section .post-list {
+    display: grid;
+    gap: 14px;
+}
+
+.post-full.post-themed .post-full-title {
+    font-family: var(--font-display);
+    text-transform: var(--heading-case);
+    letter-spacing: var(--tracking);
+    font-size: 26px;
+}
+
+/* the composer and guest bar sit on the same neutral cards as unthemed posts */
+.timeline-main > .quick-composer,
+.timeline-main > .guest-bar,
+.timeline-main > .timeline-filter {
+    margin-top: 14px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+}
+
+@media (max-width: 760px) {
+    .timeline-main > .post-list {
+        padding: 10px 10px 48px;
+        gap: 10px;
+    }
+
+    .timeline-main > .quick-composer,
+    .timeline-main > .guest-bar,
+    .timeline-main > .timeline-filter {
+        margin: 10px 10px 0;
+    }
+}
+
+/* ==========================================================================
+   Pieces: a post is a small piece of its author's profile
+   ========================================================================== */
+
+/* glyph rail */
+.sidebar {
+    background:
+        repeating-linear-gradient(180deg, var(--line) 0 1px, transparent 1px 12px) right 0 top 0 / 6px 100% no-repeat,
+        var(--bg);
+    border-right: 1px solid var(--line);
+}
+
+.side-post {
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 52px;
+    margin-top: 14px;
+    color: var(--on-accent);
+    background: var(--accent);
+    border-radius: 50%;
+    transition: transform var(--dur) var(--ease);
+}
+
+.side-post:hover {
+    color: var(--on-accent);
+    transform: rotate(45deg) scale(1.06);
+}
+
+/* feed header */
+.feed-head {
+    padding: 0 12px;
+}
+
+.feed-head-title {
+    padding-right: 6px;
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+}
+
+/* the piece */
+.post.piece {
+    display: block;
+    padding: 0;
+    overflow: hidden;
+}
+
+.post.piece:not(.post-themed) {
+    background: var(--surface);
+}
+
+.piece-strip {
+    position: relative;
+    height: 72px;
+    background:
+        linear-gradient(115deg, color-mix(in srgb, var(--accent) 80%, transparent), color-mix(in srgb, var(--accent-2) 75%, transparent));
+    background-size: cover;
+    background-position: center;
+    border-bottom: var(--border-w, 1px) solid var(--line);
+}
+
+.piece-strip-thin {
+    height: 44px;
+}
+
+.piece-index {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    padding: 2px 8px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    color: var(--text);
+    text-decoration: none;
+    background: color-mix(in srgb, var(--bg) 78%, transparent);
+    border-radius: 999px;
+    backdrop-filter: blur(4px);
+}
+
+.piece-index:hover {
+    color: var(--text);
+    text-decoration: underline;
+}
+
+.piece-author {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    margin-top: -24px;
+    padding: 0 16px;
+}
+
+.piece-avatar {
+    position: relative;
+    z-index: 1;
+    flex: none;
+}
+
+.piece-avatar .avatar {
+    box-shadow: 0 0 0 3px var(--bg);
+}
+
+.piece-avatar .avatar.shape-hex,
+.piece-avatar .avatar.shape-star {
+    box-shadow: none;
+    filter: drop-shadow(0 0 2px var(--bg));
+}
+
+.piece-author .user-chip {
+    min-width: 0;
+    padding-bottom: 2px;
+}
+
+.piece-author .user-chip-name {
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: 700;
+    text-transform: var(--heading-case);
+    letter-spacing: var(--tracking);
+    color: var(--text);
+    border-bottom: 0;
+}
+
+.piece-author .user-chip-handle {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: color-mix(in srgb, var(--text) 62%, var(--bg));
+}
+
+.piece-meta {
+    position: relative;
+    height: 30px;
+}
+
+.piece-meta .piece-index {
+    top: 8px;
+    left: 12px;
+    right: auto;
+    background: transparent;
+    padding: 0;
+    color: color-mix(in srgb, var(--text) 62%, var(--bg));
+}
+
+.piece-body {
+    display: grid;
+    gap: 6px;
+    padding: 12px 16px 4px;
+}
+
+.piece-body:empty {
+    display: none;
+}
+
+.piece .post-title {
+    font-family: var(--font-display);
+    font-size: 19px;
+    text-transform: var(--heading-case);
+    letter-spacing: var(--tracking);
+}
+
+.piece .media-grid {
+    margin-top: 4px;
+}
+
+.piece-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 8px;
+    padding: 10px 16px 14px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+}
+
+.piece-act,
+.like-button.like-text {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    padding: 4px 10px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text);
+    text-decoration: none;
+    background: color-mix(in srgb, var(--surface) 82%, transparent);
+    border: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+    border-radius: 999px;
+    cursor: pointer;
+}
+
+.piece-act:hover {
+    color: var(--text);
+    border-color: var(--text);
+}
+
+.like-button.like-text:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--surface) 82%, transparent);
+}
+
+.like-button.like-text.is-liked {
+    color: var(--accent);
+    border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
+.piece-tag {
+    color: var(--accent);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.piece-tag:hover {
+    color: var(--accent);
+    text-decoration: underline;
+}
+
+/* the old icon dock is not used by pieces */
+.piece .post-actions {
+    display: none;
+}
+
+/* compact pieces inside profile modules */
+.post.piece.post-compact {
+    padding: 0;
+}
+
+.post-compact .piece-body {
+    padding: 0 14px 2px;
+}
+
+.post-compact .piece-foot {
+    padding: 8px 14px 12px;
+}
+
+/* the composer piece */
+.quick-composer.piece {
+    display: block;
+    padding: 0;
+    overflow: hidden;
+}
+
+.quick-composer.piece:not(.post-themed) {
+    background: var(--surface);
+}
+
+.quick-composer.piece .piece-index {
+    left: 12px;
+    right: auto;
+}
+
+.quick-composer.piece .quick-composer-main {
+    padding: 8px 16px 12px;
+}
+
+.quick-composer.piece .quick-composer-input {
+    color: var(--text);
+    font-family: var(--font-body);
+}
+
+.quick-composer.piece .quick-composer-input::placeholder {
+    color: color-mix(in srgb, var(--text) 55%, var(--bg));
+}
+
+.quick-composer.piece .quick-composer-bar {
+    border-top: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+}
+
+.quick-composer.piece .quick-composer-tool {
+    color: var(--text);
+}
+
+/* column next to the feed */
+.rail-section {
+    display: grid;
+    gap: 10px;
+}
+
+.rail-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
+.rail-rooms {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.rail-rooms .user-tile-banner {
+    height: 52px;
+}
+
+.rail-rooms .user-tile-avatar {
+    margin: -22px 0 4px 10px;
+}
+
+.rail-rooms .user-tile-name,
+.rail-rooms .user-tile-handle {
+    padding: 0 10px;
+}
+
+.rail-rooms .user-tile-name {
+    font-size: 0.9rem;
+}
+
+.rail-rooms .user-tile-tagline,
+.rail-rooms .user-tile-stats {
+    display: none;
+}
+
+.rail-rooms .user-tile-link {
+    padding-bottom: 10px;
+}
+
+.rail-count {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+}
+
+.rail-rooms .user-tile-avatar {
+    --avatar-size: 40px !important;
+}
+
+@media (max-width: 760px) {
+    .feed-head-title {
+        display: none;
+    }
+}
+
+/* ==========================================================================
+   Audit fixes
+   ========================================================================== */
+
+/* the name sits under the strip; only the avatar overlaps it */
+.piece-author {
+    align-items: flex-start;
+    margin-top: 0;
+}
+
+.piece-avatar {
+    margin-top: -24px;
+}
+
+.post-page-piece .piece-avatar {
+    margin-top: -28px;
+}
+
+.piece-author .user-chip {
+    padding: 8px 0 0;
+}
+
+.piece-author .user-chip-name,
+.user-chip-name {
+    border-bottom: 0;
+}
+
+/* one image shows at its own shape, no bars around it */
+.media-grid.count-1 {
+    width: fit-content;
+    max-width: 100%;
+    background: none;
+}
+
+.media-grid.count-1 .media-item:not(video) {
+    width: fit-content;
+    max-width: 100%;
+    max-height: none;
+    background: none;
+}
+
+.media-grid.count-1 .media-item img {
+    display: block;
+    width: auto;
+    height: auto;
+    max-width: 100%;
+    max-height: 560px;
+    object-fit: initial;
+}
+
+.piece .post-title {
+    display: block;
+    line-height: 1.2;
+}
+
+/* tags in the side column */
+.tag-chip .rail-count {
+    margin-left: 3px;
+}
+
+/* tab switches hug their buttons */
+.segmented {
+    justify-self: start;
+    width: fit-content;
+    max-width: 100%;
+}
+
+/* login and sign-up: room between the button and the line under it */
+.auth-card .form + p {
+    margin-top: var(--space-5, 20px);
+}
+
+/* phone bar for visitors */
+.bottombar-join {
+    display: inline-flex;
+    align-items: center;
+    height: 40px;
+    padding: 0 18px;
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--on-accent);
+    text-decoration: none;
+    background: var(--accent);
+    border-radius: 999px;
+}
+
+.bottombar-join:hover {
+    color: var(--on-accent);
+}
+
+/* the main post on its own page */
+.post-page-piece {
+    margin-top: 14px;
+}
+
+.post.post-page-piece:hover,
+.post.post-page-piece.post-themed:hover {
+    transform: none;
+}
+
+.post-page-piece .piece-strip {
+    height: 110px;
+}
+
+.post-page-piece .piece-author .user-chip-name {
+    font-size: 19px;
+}
+
+.post-page-piece .piece-body {
+    gap: 10px;
+    padding: 14px 18px 6px;
+}
+
+.post-page-piece .post-page-title {
+    margin: 0;
+    font-size: 26px;
+}
+
+.post-page-piece .post-full-body {
+    color: var(--text);
+    font-size: 16px;
+    line-height: 1.6;
+}
+
+.post-page-piece .piece-foot {
+    padding: 12px 18px 16px;
+}
+
+.piece-act-danger:hover {
+    color: var(--danger, #ff4d6d);
+    border-color: var(--danger, #ff4d6d);
+}
+
+.piece-foot .confirm {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.piece-foot .confirm-label {
+    color: var(--text);
+}

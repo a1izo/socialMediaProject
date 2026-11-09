@@ -12,4 +12,6 @@ public class ProfileCardDto
     public bool IsModerator { get; set; }
     public ProfileThemeDto Theme { get; set; } = new();
     public ProfileStatsDto Stats { get; set; } = new();
+    // when the profile was last saved, for "recently restyled"
+    public DateTime UpdatedDate { get; set; }
 }

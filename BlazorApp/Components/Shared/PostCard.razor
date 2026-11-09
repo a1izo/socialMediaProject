@@ -1,49 +1,63 @@
 @inject IPostService PostService
+@inject ApiConfig Api
 @inject NavigationManager NavMgr
 
-<article class="post-card @(Compact ? "is-compact" : "")">
-    <header class="post-card-head">
-        @if (ShowAuthor)
-        {
-            <UserChip UserName="@Post.AuthorUserName" Card="Card" />
-        }
-        <a class="post-card-time" href="/posts/@Post.Id" title="@TimeFormat.Stamp(Post.CreatedDate)">@TimeFormat.Ago(Post.CreatedDate)</a>
-    </header>
-
-    @if (!string.IsNullOrWhiteSpace(Post.Title))
+@* A post is a small piece of its author's profile: their banner strip on top, their avatar stuck
+   onto it, their name in their own display font, and their colors and card style all over.
+   Compact mode (inside profile modules) is a plain card, since the profile around it already is the author. *@
+<article class="post piece @(Compact ? "post-compact" : "") @ThemedClasses" style="@ThemedStyle">
+    @if (IsThemed)
     {
-        <a class="post-card-title" href="/posts/@Post.Id">@Post.Title</a>
+        <FontLinks Urls="@ThemeCss.FontUrls(Card!.Theme.DisplayFont, Card.Theme.BodyFont)" />
     }
 
-    @if (ShowExcerpt && !string.IsNullOrWhiteSpace(Post.Body))
+    @if (ShowAuthor && !Compact)
     {
-        if (string.IsNullOrWhiteSpace(Post.Title))
-        {
-            <a class="post-card-text" href="/posts/@Post.Id">@Markdown.ToPlainText(Post.Body, Compact ? 160 : 320)</a>
-        }
-        else
-        {
-            <p class="post-card-excerpt">@Markdown.ToPlainText(Post.Body, Compact ? 120 : 240)</p>
-        }
+        <header class="piece-strip" style="@StripStyle">
+            <a class="piece-index" href="/posts/@Post.Id" title="@TimeFormat.Stamp(Post.CreatedDate)">
+                no.@Post.Id.ToString("000") · @TimeFormat.Ago(Post.CreatedDate)
+            </a>
+        </header>
+        <div class="piece-author">
+            <a class="piece-avatar" href="/u/@Post.AuthorUserName" tabindex="-1" aria-hidden="true">
+                <Avatar Url="@Card?.AvatarUrl" Name="@(Card?.DisplayName ?? Post.AuthorUserName)" Shape="@Card?.Theme.AvatarShape" Size="48" />
+            </a>
+            <UserChip UserName="@Post.AuthorUserName" Card="Card" ShowAvatar="false" />
+        </div>
+    }
+    else
+    {
+        <div class="piece-meta">
+            <a class="piece-index" href="/posts/@Post.Id" title="@TimeFormat.Stamp(Post.CreatedDate)">
+                no.@Post.Id.ToString("000") · @TimeFormat.Ago(Post.CreatedDate)
+            </a>
+        </div>
     }
 
-    @if (!Compact || Post.Media.Count > 0)
-    {
-        <MediaGrid Media="Post.Media" />
-    }
+    <div class="piece-body">
+        @if (!string.IsNullOrWhiteSpace(Post.Title))
+        {
+            <a class="post-title" href="/posts/@Post.Id">@Post.Title</a>
+        }
 
-    <footer class="post-card-foot">
-        <LikeButton Liked="@IsLiked" Count="@Post.LikeCount" Busy="@busy" OnToggle="ToggleLikeAsync" />
-        <a class="post-card-stat" href="/posts/@Post.Id#comments" title="comments">
-            <Icon Name="comment" Size="16" />
-            <span>@Post.CommentCount</span>
-        </a>
-        <span class="post-card-tags">
-            @foreach (TagDto tag in Post.Tags)
-            {
-                <a class="tag-chip" href="/?tag=@tag.Id">#@tag.Name</a>
-            }
-        </span>
+        @if (ShowExcerpt && !string.IsNullOrWhiteSpace(Post.Body))
+        {
+            <a class="post-text" href="/posts/@Post.Id">@Markdown.ToPlainText(Post.Body, Compact ? 160 : 420)</a>
+        }
+
+        @if (Post.Media.Count > 0)
+        {
+            <MediaGrid Media="Post.Media" />
+        }
+    </div>
+
+    <footer class="piece-foot">
+        <LikeButton Text="true" Liked="@IsLiked" Count="@Post.LikeCount" Busy="@busy" OnToggle="ToggleLikeAsync" />
+        <a class="piece-act" href="/posts/@Post.Id#comments">↳ @(Post.CommentCount switch { 0 => "reply", 1 => "1 reply", _ => $"{Post.CommentCount} replies" })</a>
+        @foreach (TagDto tag in Post.Tags)
+        {
+            <a class="piece-tag" href="/?tag=@tag.Id">#@tag.Name</a>
+        }
     </footer>
     @if (!string.IsNullOrEmpty(error))
     {
@@ -57,12 +71,28 @@
     [Parameter] public bool ShowAuthor { get; set; } = true;
     [Parameter] public bool ShowExcerpt { get; set; } = true;
     [Parameter] public bool Compact { get; set; }
+    [Parameter] public bool Themed { get; set; } = true;
 
     [CascadingParameter] public Task<AuthenticationState> State { get; set; } = default!;
 
     private int? userId;
     private bool busy;
     private string? error;
+
+    private bool IsThemed => Themed && !Compact && Card is not null;
+
+    private string ThemedClasses => IsThemed
+        ? $"post-themed post-style-{CssValues.OneOf(Card!.Theme.CardStyle, "solid", "solid", "glass", "outline", "brutal", "hud", "bare")}"
+        : "";
+
+    private string? ThemedStyle => IsThemed
+        ? ThemeCss.Variables(Card!.Theme) + ThemeCss.CardBackground(Card.Theme, Api)
+        : null;
+
+    // the author's banner, or a strip in their two accent colors when they have none
+    private string StripStyle => CssValues.IsUrl(Card?.BannerUrl)
+        ? $"background-image:url(\"{Api.Resolve(Card!.BannerUrl)}\");"
+        : "";
 
     private bool IsLiked => userId is not null && Post.LikedByUserIds.Contains(userId.Value);
 

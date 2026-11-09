@@ -3,12 +3,17 @@
 @inject ICommentService CommentService
 @inject ITagService TagService
 @inject ProfileCardCache CardCache
+@inject ApiConfig Api
 @inject NavigationManager NavMgr
 
 <PageTitle>@(string.IsNullOrWhiteSpace(post?.Title) ? $"post by {post?.AuthorUserName}" : post.Title) // cybernet</PageTitle>
 
-<div class="container narrow">
-    <a class="back-link" href="/"><Icon Name="arrow-left" Size="14" /> feed</a>
+<div class="timeline">
+    <section class="timeline-main timeline-page">
+    <header class="timeline-head">
+        <a class="icon-btn" href="/" aria-label="back to the feed"><Icon Name="arrow-left" /></a>
+        <h1 class="timeline-title">post</h1>
+    </header>
 
     <ErrorBanner Message="@error" />
 
@@ -18,65 +23,80 @@
     }
     else if (post is not null)
     {
-        <article class="post-full hud-frame">
-            <span class="hud-label">@TimeFormat.Stamp(post.CreatedDate)</span>
-
-            <div class="post-full-author">
-                <UserChip UserName="@post.AuthorUserName" Card="@CardCache.Get(post.UserId)" AvatarSize="40" />
+        ProfileCardDto? author = CardCache.Get(post.UserId);
+        <article class="post piece post-page-piece @ThemedClasses(author)" style="@ThemedStyle(author)">
+            @if (author is not null)
+            {
+                <FontLinks Urls="@ThemeCss.FontUrls(author.Theme.DisplayFont, author.Theme.BodyFont)" />
+            }
+            <header class="piece-strip" style="@StripStyle(author)">
+                <span class="piece-index">no.@post.Id.ToString("000") · @TimeFormat.Stamp(post.CreatedDate)</span>
+            </header>
+            <div class="piece-author">
+                <a class="piece-avatar" href="/u/@post.AuthorUserName" tabindex="-1" aria-hidden="true">
+                    <Avatar Url="@author?.AvatarUrl" Name="@(author?.DisplayName ?? post.AuthorUserName)" Shape="@author?.Theme.AvatarShape" Size="56" />
+                </a>
+                <UserChip UserName="@post.AuthorUserName" Card="author" ShowAvatar="false" />
             </div>
 
-            @if (editing)
-            {
-                <div class="form">
-                    <label class="field">
-                        <span class="field-label">title (optional)</span>
-                        <input class="input" @bind="editTitle" @bind:event="oninput" maxlength="140" />
-                    </label>
-                    <label class="field">
-                        <span class="field-label">text</span>
-                        <textarea class="input" rows="8" @bind="editBody" @bind:event="oninput"></textarea>
-                    </label>
-                    <label class="field">
-                        <span class="field-label">tags, separated by commas</span>
-                        <input class="input" @bind="editTags" @bind:event="oninput" placeholder="art, dither, y2k" />
-                    </label>
-                    <div class="row gap-sm">
-                        <button class="btn btn-primary" type="button" @onclick="SaveEditAsync" disabled="@(string.IsNullOrWhiteSpace(editTitle) && string.IsNullOrWhiteSpace(editBody) && post.Media.Count == 0)">save</button>
-                        <button class="btn" type="button" @onclick="() => editing = false">cancel</button>
-                    </div>
-                </div>
-            }
-            else
-            {
-                @if (!string.IsNullOrWhiteSpace(post.Title))
+            <div class="piece-body">
+                @if (editing)
                 {
-                    <h1 class="display post-full-title">@post.Title</h1>
+                    <div class="form">
+                        <label class="field">
+                            <span class="field-label">title (optional)</span>
+                            <input class="input" @bind="editTitle" @bind:event="oninput" maxlength="140" />
+                        </label>
+                        <label class="field">
+                            <span class="field-label">text</span>
+                            <textarea class="input" rows="8" @bind="editBody" @bind:event="oninput"></textarea>
+                        </label>
+                        <label class="field">
+                            <span class="field-label">tags, separated by commas</span>
+                            <input class="input" @bind="editTags" @bind:event="oninput" placeholder="art, dither, y2k" />
+                        </label>
+                        <div class="row gap-sm">
+                            <button class="btn btn-primary" type="button" @onclick="SaveEditAsync" disabled="@(string.IsNullOrWhiteSpace(editTitle) && string.IsNullOrWhiteSpace(editBody) && post.Media.Count == 0)">save</button>
+                            <button class="btn" type="button" @onclick="() => editing = false">cancel</button>
+                        </div>
+                    </div>
                 }
-                <MarkdownView Text="@post.Body" Class="post-full-body" />
-                <MediaGrid Media="post.Media" />
-                <div class="tag-row">
+                else
+                {
+                    @if (!string.IsNullOrWhiteSpace(post.Title))
+                    {
+                        <h2 class="post-title post-page-title">@post.Title</h2>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(post.Body))
+                    {
+                        <MarkdownView Text="@post.Body" Class="post-full-body" />
+                    }
+                    <MediaGrid Media="post.Media" />
+                }
+            </div>
+
+            <footer class="piece-foot">
+                <LikeButton Text="true" Liked="@IsLiked" Count="@post.LikeCount" Busy="@busy" OnToggle="ToggleLikeAsync" />
+                <a class="piece-act" href="#comments">↳ @(comments.Count switch { 0 => "reply", 1 => "1 reply", _ => $"{comments.Count} replies" })</a>
+                @if (!editing)
+                {
                     @foreach (TagDto tag in post.Tags)
                     {
-                        <a class="tag-chip" href="/?tag=@tag.Id">#@tag.Name</a>
+                        <a class="piece-tag" href="/?tag=@tag.Id">#@tag.Name</a>
                     }
-                </div>
-            }
-
-            <div class="post-full-actions">
-                <LikeButton Liked="@IsLiked" Count="@post.LikeCount" Busy="@busy" OnToggle="ToggleLikeAsync" />
-                <span class="post-card-stat"><Icon Name="comment" Size="16" /> @comments.Count</span>
+                }
                 <span class="spacer"></span>
                 @if (userId == post.UserId && !editing)
                 {
-                    <button class="btn btn-sm btn-ghost" type="button" @onclick="StartEdit"><Icon Name="edit" Size="14" /> edit</button>
+                    <button class="piece-act" type="button" @onclick="StartEdit">edit</button>
                 }
                 @if (userId == post.UserId || isModerator)
                 {
-                    <ConfirmButton Question="delete this post?" OnConfirm="DeletePostAsync">
-                        <Icon Name="trash" Size="14" /> @(userId == post.UserId ? "delete" : "mod delete")
+                    <ConfirmButton Question="delete this post?" OnConfirm="DeletePostAsync" Class="piece-act piece-act-danger">
+                        @(userId == post.UserId ? "delete" : "mod delete")
                     </ConfirmButton>
                 }
-            </div>
+            </footer>
         </article>
 
         <section class="comments" id="comments">
@@ -103,6 +123,9 @@
             }
         </section>
     }
+</section>
+
+    <RightRail />
 </div>
 
 @code {
@@ -123,6 +146,18 @@
     private string editTags = "";
     private string newComment = "";
     private string? error;
+
+    private static string ThemedClasses(ProfileCardDto? author) => author is null
+        ? ""
+        : $"post-themed post-style-{CssValues.OneOf(author.Theme.CardStyle, "solid", "solid", "glass", "outline", "brutal", "hud", "bare")}";
+
+    private string? ThemedStyle(ProfileCardDto? author) => author is null
+        ? null
+        : ThemeCss.Variables(author.Theme) + ThemeCss.CardBackground(author.Theme, Api);
+
+    private string StripStyle(ProfileCardDto? author) => CssValues.IsUrl(author?.BannerUrl)
+        ? $"background-image:url(\"{Api.Resolve(author!.BannerUrl)}\");"
+        : "";
 
     private bool IsLiked => userId is not null && post is not null && post.LikedByUserIds.Contains(userId.Value);
 

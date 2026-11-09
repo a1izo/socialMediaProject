@@ -24,14 +24,16 @@
 
     <div class="profile-id">
         <div class="profile-id-text">
-            @if (Editing)
+            @* in edit mode the name and tagline stay real text (so name styles show), and turn into a box when clicked *@
+            @if (Editing && editingName)
             {
-                <input class="profile-name profile-name-input" @bind="Profile.DisplayName" @bind:event="oninput" @bind:after="ChangedAsync"
-                       maxlength="40" aria-label="display name" />
+                <input @ref="nameInput" class="profile-name profile-name-input" @bind="Profile.DisplayName" @bind:event="oninput" @bind:after="ChangedAsync"
+                       @onblur="() => editingName = false" @onkeydown="NameKey" maxlength="40" aria-label="display name" />
             }
             else
             {
-                <h1 class="profile-name" data-text="@Profile.DisplayName">@Profile.DisplayName</h1>
+                <h1 class="profile-name @(Editing ? "is-editable" : "")" data-text="@Profile.DisplayName" style="--name-len:@Math.Max(1, Profile.DisplayName.Length)"
+                    title="@(Editing ? "click to change your name" : null)" @onclick="StartNameEdit">@(Editing && string.IsNullOrWhiteSpace(Profile.DisplayName) ? "your name" : Profile.DisplayName)</h1>
             }
             <div class="profile-handle">
                 <span>@@@Profile.UserName</span>
@@ -41,10 +43,16 @@
                 }
                 <span class="profile-joined">joined @Profile.CreatedDate.ToString("MMM yyyy").ToLower()</span>
             </div>
-            @if (Editing)
+            @if (Editing && editingTagline)
             {
-                <input class="profile-tagline profile-tagline-input" @bind="Profile.Tagline" @bind:event="oninput" @bind:after="ChangedAsync"
-                       maxlength="140" placeholder="add a short line about you" aria-label="tagline" />
+                <textarea @ref="taglineInput" class="profile-tagline profile-tagline-input" rows="1" @bind="Profile.Tagline" @bind:event="oninput" @bind:after="TaglineChangedAsync"
+                          @onblur="() => editingTagline = false" @onkeydown="TaglineKey"
+                          maxlength="140" placeholder="add a short line about you" aria-label="tagline"></textarea>
+            }
+            else if (Editing)
+            {
+                <p class="profile-tagline is-editable @(string.IsNullOrWhiteSpace(Profile.Tagline) ? "is-empty" : "")" title="click to change your tagline"
+                   @onclick="StartTaglineEdit">@(string.IsNullOrWhiteSpace(Profile.Tagline) ? "add a short line about you" : Profile.Tagline)</p>
             }
             else if (!string.IsNullOrWhiteSpace(Profile.Tagline))
             {
@@ -85,6 +93,11 @@
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
     private ElementReference header;
+    private ElementReference nameInput;
+    private ElementReference taglineInput;
+    private bool editingName;
+    private bool editingTagline;
+    private bool focusPending;
     private bool observing;
     private bool playing;
     private string? songEmbed;
@@ -112,6 +125,12 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (focusPending)
+        {
+            focusPending = false;
+            await (editingName ? nameInput : taglineInput).FocusAsync();
+        }
+
         try
         {
             if (!observing)
@@ -131,6 +150,42 @@
     }
 
     private Task ChangedAsync() => OnChanged.InvokeAsync();
+
+    private void StartNameEdit()
+    {
+        if (!Editing) return;
+        editingName = true;
+        focusPending = true;
+    }
+
+    private void StartTaglineEdit()
+    {
+        editingTagline = true;
+        focusPending = true;
+    }
+
+    // enter or escape finishes editing
+    private void NameKey(KeyboardEventArgs e)
+    {
+        if (e.Key is "Enter" or "Escape") editingName = false;
+    }
+
+    private void TaglineKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape") editingTagline = false;
+    }
+
+    // the tagline is one line: enter finishes instead of adding a line break
+    private Task TaglineChangedAsync()
+    {
+        if (Profile.Tagline is not null && (Profile.Tagline.Contains('\n') || Profile.Tagline.Contains('\r')))
+        {
+            Profile.Tagline = Profile.Tagline.Replace("\r", "").Replace("\n", "").Trim();
+            editingTagline = false;
+        }
+
+        return OnChanged.InvokeAsync();
+    }
 
     private async Task OpenHeaderAsync()
     {

@@ -1,12 +1,25 @@
-<button class="like-button @(Liked ? "is-liked" : "")" type="button" @onclick="OnToggle" disabled="@Busy"
+<button class="like-button @(Text ? "like-text" : "") @(Liked ? "is-liked" : "")" type="button" @onclick="OnToggle" disabled="@Busy"
         aria-pressed="@Liked" title="@(Liked ? "unlike" : "like")">
-    <Icon Name="@(Liked ? "heart-fill" : "heart")" Size="16" />
-    <span>@Count</span>
+    @if (Text)
+    {
+        <span aria-hidden="true">@(Liked ? "♥" : "♡")</span>
+        @if (Count > 0)
+        {
+            <span>@Count</span>
+        }
+    }
+    else
+    {
+        <Icon Name="@(Liked ? "heart-fill" : "heart")" Size="18" />
+        <span>@(Count > 0 ? Count.ToString() : "")</span>
+    }
 </button>
 
 @code {
     [Parameter] public bool Liked { get; set; }
     [Parameter] public int Count { get; set; }
     [Parameter] public bool Busy { get; set; }
+    // a small "♥ 12" instead of an icon
+    [Parameter] public bool Text { get; set; }
     [Parameter] public EventCallback OnToggle { get; set; }
 }

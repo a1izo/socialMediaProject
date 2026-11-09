@@ -14,6 +14,6 @@ public static class TimeFormat
 
     public static string Stamp(DateTime date)
     {
-        return date.ToString("yyyy.MM.dd // HH:mm");
+        return date.ToString("d MMM yyyy, HH:mm").ToLower();
     }
 }

@@ -6,69 +6,74 @@
 
 <PageTitle>cybernet</PageTitle>
 
-<div class="container feed-layout">
-    <AuthorizeView>
-        <NotAuthorized>
-            <div class="guest-bar">
-                <span>you're browsing as a guest.</span>
-                <a class="btn btn-sm btn-primary" href="/register">sign up</a>
-                <a class="btn btn-sm btn-ghost" href="/login">log in</a>
+<div class="timeline">
+    <section class="timeline-main">
+        <header class="timeline-head feed-head">
+            <h1 class="feed-head-title">feed</h1>
+            <div class="segmented" role="tablist">
+                <button class="@(View != "following" ? "is-active" : "")" type="button" role="tab" @onclick='() => Go(view: "all")'>everyone</button>
+                <button class="@(View == "following" ? "is-active" : "")" type="button" role="tab" @onclick='() => Go(view: "following")'>following</button>
             </div>
-        </NotAuthorized>
-    </AuthorizeView>
-
-    <div class="feed-controls">
-        <div class="segmented" role="tablist">
-            <button class="@(View != "following" ? "is-active" : "")" type="button" @onclick='() => Go(view: "all")'>everyone</button>
-            <button class="@(View == "following" ? "is-active" : "")" type="button" @onclick='() => Go(view: "following")'>following</button>
-        </div>
-        @if (activeTag is not null)
-        {
-            <a class="tag-chip is-active" href="@NavMgr.GetUriWithQueryParameter("tag", (int?)null)" title="clear the filter">
-                #@activeTag.Name <Icon Name="x" Size="12" />
-            </a>
-        }
-        <label class="select-wrap">
-            <select value="@(Sort ?? "newest")" @onchange="e => Go(sort: e.Value?.ToString())" aria-label="sort">
+            <span class="spacer"></span>
+            <select class="timeline-sort" value="@(Sort ?? "newest")" @onchange="e => Go(sort: e.Value?.ToString())" aria-label="sort posts">
                 <option value="newest">newest</option>
                 <option value="oldest">oldest</option>
                 <option value="likes">most liked</option>
             </select>
-        </label>
-    </div>
+        </header>
 
-    <ErrorBanner Message="@error" />
+        <AuthorizeView>
+            <Authorized>
+                <QuickComposer OnPosted="OnPostedAsync" />
+            </Authorized>
+            <NotAuthorized>
+                <div class="guest-bar">
+                    <span>make a profile that looks like nobody else's.</span>
+                    <a class="btn btn-sm btn-primary" href="/register">sign up</a>
+                    <a class="btn btn-sm" href="/login">log in</a>
+                </div>
+            </NotAuthorized>
+        </AuthorizeView>
 
-    @if (loading)
-    {
-        <Loading />
-    }
-    else if (needsLogin)
-    {
-        <div class="empty-state">
-            <p>log in to see posts from people you follow.</p>
-            <a class="btn btn-primary" href="/login">log in</a>
-        </div>
-    }
-    else if (posts.Count == 0)
-    {
-        <div class="empty-state">
-            <StarGlyph Size="28" />
-            <p>@(View == "following" ? "the people you follow haven't posted yet." : "no posts yet.")</p>
-            <AuthorizeView>
-                <a class="btn btn-primary" href="/post">write the first one</a>
-            </AuthorizeView>
-        </div>
-    }
-    else
-    {
-        <div class="post-list">
-            @foreach (PostDto post in posts)
-            {
-                <PostCard @key="post.Id" Post="post" Card="@Cards.Get(post.UserId)" />
-            }
-        </div>
-    }
+        @if (activeTag is not null)
+        {
+            <div class="timeline-filter">
+                <span>posts tagged <b>#@activeTag.Name</b></span>
+                <a class="btn btn-sm" href="@NavMgr.GetUriWithQueryParameter("tag", (int?)null)">clear</a>
+            </div>
+        }
+
+        <ErrorBanner Message="@error" />
+
+        @if (loading)
+        {
+            <Loading />
+        }
+        else if (needsLogin)
+        {
+            <div class="timeline-empty">
+                <p>log in to see posts from people you follow.</p>
+                <a class="btn btn-primary" href="/login">log in</a>
+            </div>
+        }
+        else if (posts.Count == 0)
+        {
+            <div class="timeline-empty">
+                <p>@(View == "following" ? "the people you follow haven't posted yet." : "no posts yet.")</p>
+            </div>
+        }
+        else
+        {
+            <div class="post-list">
+                @foreach (PostDto post in posts)
+                {
+                    <PostCard @key="post.Id" Post="post" Card="@Cards.Get(post.UserId)" />
+                }
+            </div>
+        }
+    </section>
+
+    <RightRail />
 </div>
 
 @code {
@@ -87,6 +92,11 @@
     protected override async Task OnParametersSetAsync()
     {
         loading = true;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
         needsLogin = false;
         error = null;
         try
@@ -116,6 +126,11 @@
         {
             loading = false;
         }
+    }
+
+    private async Task OnPostedAsync(PostDto created)
+    {
+        await LoadAsync();
     }
 
     private void Go(string? view = null, string? sort = null)

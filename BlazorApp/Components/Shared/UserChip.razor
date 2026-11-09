@@ -1,5 +1,5 @@
 @* Avatar + display name in the author's accent color. Hovering (or focusing) shows their themed card. *@
-<span class="user-chip @(Card is not null ? "has-card" : "")">
+<span class="user-chip @(Card is not null ? "has-card" : "") @(Inline ? "is-inline" : "")">
     <a class="user-chip-link" href="/u/@UserName">
         @if (ShowAvatar)
         {
@@ -27,6 +27,8 @@
     [Parameter] public bool ShowAvatar { get; set; } = true;
     [Parameter] public bool ShowHandle { get; set; } = true;
     [Parameter] public int AvatarSize { get; set; } = 32;
+    // name and handle on one line, for post headers
+    [Parameter] public bool Inline { get; set; }
 
     private string NameStyle => Card is null ? "" : $"--chip-accent:{CssValues.Color(Card.Theme.Accent, "var(--accent)")}";
 }
