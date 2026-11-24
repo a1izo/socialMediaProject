@@ -9,7 +9,7 @@ namespace WebAPI.Seeding;
 // Fills an empty data folder with a small, believable community so the app looks alive on first run:
 // 18 people with their own looks, about a month of posts, replies, likes, follows, chats and notifications.
 // Every demo user has the password "cybernet". The first user (nyx) is a moderator.
-// To reseed, stop the API and delete the .json data files in the WebAPI folder.
+// To reseed, stop the API and delete EfcRepositories/app.db (it is recreated on the next start).
 public static class DemoDataSeeder
 {
     public const string DemoPassword = "cybernet";

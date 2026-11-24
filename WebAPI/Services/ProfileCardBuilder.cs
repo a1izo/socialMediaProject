@@ -1,5 +1,6 @@
 using ApiContracts;
 using Entities;
+using Microsoft.EntityFrameworkCore;
 using RepositoryContracts;
 using WebAPI.Profiles;
 
@@ -27,19 +28,13 @@ public class ProfileCardBuilder
 
     public async Task<ProfileStatsDto> GetStatsAsync(int userId)
     {
-        List<int> postIds = postRepo.GetMany().Where(p => p.UserId == userId).Select(p => p.Id).ToList();
-        int likesReceived = 0;
-        foreach (int postId in postIds)
-        {
-            likesReceived += await postRepo.GetLikeCountAsync(postId);
-        }
-
+        IQueryable<Post> posts = postRepo.GetMany().Where(p => p.UserId == userId);
         return new ProfileStatsDto
         {
-            PostCount = postIds.Count,
-            FollowerCount = userRepo.GetFollowers(userId).Count(),
-            FollowingCount = userRepo.GetFollowing(userId).Count(),
-            LikesReceived = likesReceived
+            PostCount = await posts.CountAsync(),
+            FollowerCount = await userRepo.GetFollowers(userId).CountAsync(),
+            FollowingCount = await userRepo.GetFollowing(userId).CountAsync(),
+            LikesReceived = await posts.SumAsync(p => p.Likes.Count)
         };
     }
 }

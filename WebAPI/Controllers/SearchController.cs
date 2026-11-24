@@ -1,6 +1,7 @@
 using ApiContracts;
 using Entities;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using RepositoryContracts;
 using WebAPI.Services;
 
@@ -14,17 +15,15 @@ public class SearchController : ControllerBase
     private const int Limit = 30;
 
     private readonly IUserRepository userRepo;
-    private readonly IProfileRepository profileRepo;
     private readonly IPostRepository postRepo;
     private readonly ITagRepository tagRepo;
     private readonly PostDtoBuilder postDtoBuilder;
     private readonly ProfileCardBuilder cardBuilder;
 
-    public SearchController(IUserRepository userRepo, IProfileRepository profileRepo, IPostRepository postRepo,
+    public SearchController(IUserRepository userRepo, IPostRepository postRepo,
         ITagRepository tagRepo, PostDtoBuilder postDtoBuilder, ProfileCardBuilder cardBuilder)
     {
         this.userRepo = userRepo;
-        this.profileRepo = profileRepo;
         this.postRepo = postRepo;
         this.tagRepo = tagRepo;
         this.postDtoBuilder = postDtoBuilder;
@@ -45,21 +44,19 @@ public class SearchController : ControllerBase
             return Ok(result);
         }
 
-        bool Matches(params string?[] fields) =>
-            words.All(w => fields.Any(f => f is not null && f.ToLower().Contains(w)));
-
+        // every word has to appear somewhere (case-insensitive); the filtering runs in the database
         if (kind is "all" or "accounts")
         {
-            Dictionary<int, Profile> profiles = profileRepo.GetMany().ToDictionary(p => p.UserId);
-            List<User> users = userRepo.GetMany().ToList()
-                .Where(u =>
-                {
-                    profiles.TryGetValue(u.Id, out Profile? profile);
-                    return Matches(u.UserName, profile?.DisplayName, profile?.Tagline);
-                })
-                .Take(Limit)
-                .ToList();
-            foreach (User user in users)
+            IQueryable<User> users = userRepo.GetMany();
+            foreach (string word in words)
+            {
+                users = users.Where(u =>
+                    u.UserName.ToLower().Contains(word) ||
+                    (u.Profile != null && (u.Profile.DisplayName.ToLower().Contains(word) ||
+                                           (u.Profile.Tagline != null && u.Profile.Tagline.ToLower().Contains(word)))));
+            }
+
+            foreach (User user in await users.OrderBy(u => u.Id).Take(Limit).ToListAsync())
             {
                 result.Users.Add(await cardBuilder.BuildCardAsync(user));
             }
@@ -67,23 +64,24 @@ public class SearchController : ControllerBase
 
         if (kind is "all" or "posts")
         {
-            Dictionary<int, string> userNames = postDtoBuilder.GetUserNames();
-            List<Post> posts = postRepo.GetMany().ToList()
-                .Where(p => Matches(p.Title, p.Body,
-                    string.Join(" ", postRepo.GetTagsForPost(p.Id).Select(t => t.Name)),
-                    PostDtoBuilder.UserNameOf(p.UserId, userNames)))
-                .OrderByDescending(p => p.CreatedDate)
-                .Take(Limit)
-                .ToList();
-            foreach (Post post in posts)
+            IQueryable<Post> posts = postRepo.GetMany();
+            foreach (string word in words)
             {
-                result.Posts.Add(await postDtoBuilder.BuildAsync(post, userNames));
+                posts = posts.Where(p =>
+                    p.Title.ToLower().Contains(word) ||
+                    p.Body.ToLower().Contains(word) ||
+                    p.User.UserName.ToLower().Contains(word) ||
+                    p.PostTags.Any(pt => pt.Tag.Name.ToLower().Contains(word)));
             }
+
+            result.Posts = await postDtoBuilder.BuildManyAsync(posts.OrderByDescending(p => p.CreatedDate).Take(Limit));
         }
 
         if (kind is "all" or "tags")
         {
-            result.Tags = tagRepo.GetMany().ToList()
+            // any of the words is enough for a tag; the tag list is small, so this filters in memory
+            List<Tag> allTags = await tagRepo.GetMany().OrderBy(t => t.Name).ToListAsync();
+            result.Tags = allTags
                 .Where(t => words.Any(w => t.Name.ToLower().Contains(w)))
                 .Take(Limit)
                 .Select(DtoMapper.ToDto)

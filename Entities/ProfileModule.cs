@@ -12,4 +12,7 @@ public class ProfileModule
     public bool IsVisible { get; set; }
     public string SettingsJson { get; set; }
     public string StyleJson { get; set; }
+
+    // navigation properties (EF Core)
+    public User User { get; set; } = null!;
 }

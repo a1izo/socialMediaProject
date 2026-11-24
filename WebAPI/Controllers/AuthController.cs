@@ -1,5 +1,6 @@
 using ApiContracts;
 using Entities;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
 using RepositoryContracts;
 
@@ -17,10 +18,10 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("login")]
-    public ActionResult<UserDto> Login([FromBody] LoginRequest request)
+    public async Task<ActionResult<UserDto>> Login([FromBody] LoginRequest request)
     {
-        User? user = userRepo.GetMany()
-            .SingleOrDefault(u => u.UserName.ToLower() == request.UserName.ToLower());
+        User? user = await userRepo.GetMany()
+            .SingleOrDefaultAsync(u => u.UserName.ToLower() == request.UserName.ToLower());
         if (user is null || user.Password != request.Password)
         {
             return Unauthorized("Incorrect user name or password.");

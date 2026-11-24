@@ -8,4 +8,7 @@ public class PostMedia
     // image | gif | video
     public string Kind { get; set; }
     public int Order { get; set; }
+
+    // navigation properties (EF Core)
+    public Post Post { get; set; } = null!;
 }

@@ -13,4 +13,10 @@ public class Conversation
     public DateTime LastMessageDate { get; set; }
     public DateTime? UserOneLastRead { get; set; }
     public DateTime? UserTwoLastRead { get; set; }
+
+    // navigation properties (EF Core)
+    public User UserOne { get; set; } = null!;
+    public User UserTwo { get; set; } = null!;
+    public User StartedBy { get; set; } = null!;
+    public ICollection<Message> Messages { get; set; } = new List<Message>();
 }

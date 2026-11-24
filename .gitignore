@@ -23,3 +23,8 @@ WebAPI/postMedia.json
 WebAPI/notifications.json
 WebAPI/conversations.json
 WebAPI/messages.json
+
+# SQLite database (recreated from the migrations on startup)
+EfcRepositories/app.db
+EfcRepositories/app.db-shm
+EfcRepositories/app.db-wal

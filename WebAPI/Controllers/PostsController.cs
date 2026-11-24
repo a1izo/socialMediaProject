@@ -1,6 +1,7 @@
 using ApiContracts;
 using Entities;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using RepositoryContracts;
 using WebAPI.Services;
 
@@ -14,17 +15,15 @@ public class PostsController : ControllerBase
 
     private readonly IPostRepository postRepo;
     private readonly IUserRepository userRepo;
-    private readonly ICommentRepository commentRepo;
     private readonly ITagRepository tagRepo;
     private readonly PostDtoBuilder postDtoBuilder;
     private readonly Notifier notifier;
 
     public PostsController(IPostRepository postRepo, IUserRepository userRepo,
-        ICommentRepository commentRepo, ITagRepository tagRepo, PostDtoBuilder postDtoBuilder, Notifier notifier)
+        ITagRepository tagRepo, PostDtoBuilder postDtoBuilder, Notifier notifier)
     {
         this.postRepo = postRepo;
         this.userRepo = userRepo;
-        this.commentRepo = commentRepo;
         this.tagRepo = tagRepo;
         this.postDtoBuilder = postDtoBuilder;
         this.notifier = notifier;
@@ -48,13 +47,13 @@ public class PostsController : ControllerBase
             MediaUrls.Validate(media.Url, media.Kind);
         }
 
-        User author = GetExistingUser(request.UserId);
+        await VerifyUserExistsAsync(request.UserId);
 
         Post post = new()
         {
             Title = request.Title?.Trim() ?? "",
             Body = request.Body?.Trim() ?? "",
-            UserId = author.Id,
+            UserId = request.UserId,
             CreatedDate = DateTime.Now
         };
         Post created = await postRepo.AddAsync(post);
@@ -70,7 +69,7 @@ public class PostsController : ControllerBase
             });
         }
 
-        PostDto dto = await postDtoBuilder.BuildAsync(created, postDtoBuilder.GetUserNames());
+        PostDto dto = await postDtoBuilder.BuildAsync(created.Id);
         return Created($"/posts/{dto.Id}", dto);
     }
 
@@ -78,7 +77,7 @@ public class PostsController : ControllerBase
     public async Task<ActionResult> UpdatePost([FromRoute] int id, [FromBody] UpdatePostDto request)
     {
         Post post = await postRepo.GetSingleAsync(id);
-        bool hasMedia = postRepo.GetMedia(id).Any();
+        bool hasMedia = await postRepo.GetMedia(id).AnyAsync();
         if (string.IsNullOrWhiteSpace(request.Title) && string.IsNullOrWhiteSpace(request.Body) && !hasMedia)
         {
             throw new ArgumentException("A post needs some text or an attachment.");
@@ -93,13 +92,10 @@ public class PostsController : ControllerBase
     [HttpGet("{id:int}")]
     public async Task<ActionResult<PostDto>> GetSinglePost([FromRoute] int id, [FromQuery] bool includeComments = false)
     {
-        Post post = await postRepo.GetSingleAsync(id);
-        Dictionary<int, string> userNames = postDtoBuilder.GetUserNames();
-
-        PostDto dto = await postDtoBuilder.BuildAsync(post, userNames);
+        PostDto dto = await postDtoBuilder.BuildAsync(id);
         if (includeComments)
         {
-            dto.Comments = await postDtoBuilder.GetCommentsForPostAsync(post.Id, userNames);
+            dto.Comments = await postDtoBuilder.GetCommentsForPostAsync(id);
         }
 
         return Ok(dto);
@@ -129,36 +125,24 @@ public class PostsController : ControllerBase
 
         if (!string.IsNullOrWhiteSpace(userName))
         {
-            List<int> matchingUserIds = userRepo.GetMany()
-                .Where(u => u.UserName.ToLower() == userName.ToLower())
-                .Select(u => u.Id)
-                .ToList();
-            posts = posts.Where(p => matchingUserIds.Contains(p.UserId));
+            posts = posts.Where(p => p.User.UserName.ToLower() == userName.ToLower());
         }
 
         if (tagId is not null)
         {
-            posts = posts.Where(p => postRepo.GetTagsForPost(p.Id).Any(t => t.Id == tagId));
+            posts = posts.Where(p => p.PostTags.Any(pt => pt.TagId == tagId));
         }
 
         if (followedBy is not null)
         {
-            List<int> followingIds = userRepo.GetFollowing(followedBy.Value).Select(u => u.Id).ToList();
-            posts = posts.Where(p => followingIds.Contains(p.UserId));
+            posts = posts.Where(p => p.User.Followers.Any(f => f.FollowerId == followedBy));
         }
 
-        Dictionary<int, string> userNames = postDtoBuilder.GetUserNames();
-        List<PostDto> dtos = new();
-        foreach (Post post in posts.ToList())
+        posts = orderBy?.ToLower() switch
         {
-            dtos.Add(await postDtoBuilder.BuildAsync(post, userNames));
-        }
-
-        IEnumerable<PostDto> result = orderBy?.ToLower() switch
-        {
-            null or "" or "newest" => dtos.OrderByDescending(p => p.CreatedDate),
-            "oldest" => dtos.OrderBy(p => p.CreatedDate),
-            "likes" => dtos.OrderByDescending(p => p.LikeCount).ThenByDescending(p => p.CreatedDate),
+            null or "" or "newest" => posts.OrderByDescending(p => p.CreatedDate),
+            "oldest" => posts.OrderBy(p => p.CreatedDate),
+            "likes" => posts.OrderByDescending(p => p.Likes.Count).ThenByDescending(p => p.CreatedDate),
             _ => throw new ArgumentException("orderBy must be one of: newest, oldest, likes.")
         };
 
@@ -169,38 +153,36 @@ public class PostsController : ControllerBase
                 throw new ArgumentException("take must be a positive number.");
             }
 
-            result = result.Take(take.Value);
+            posts = posts.Take(take.Value);
         }
 
-        return Ok(result.ToList());
+        return Ok(await postDtoBuilder.BuildManyAsync(posts));
     }
 
     [HttpDelete("{id:int}")]
     public async Task<ActionResult> DeletePost([FromRoute] int id)
     {
+        // the database removes the post's comments, likes, tags, media and notifications with it
         await postRepo.DeleteAsync(id);
-
-        List<int> commentIds = commentRepo.GetMany().Where(c => c.PostId == id).Select(c => c.Id).ToList();
-        foreach (int commentId in commentIds)
-        {
-            await commentRepo.DeleteAsync(commentId);
-        }
-
         return NoContent();
     }
 
     [HttpGet("{id:int}/comments")]
     public async Task<ActionResult<IEnumerable<CommentDto>>> GetCommentsForPost([FromRoute] int id)
     {
-        await postRepo.GetSingleAsync(id);
-        return Ok(await postDtoBuilder.GetCommentsForPostAsync(id, postDtoBuilder.GetUserNames()));
+        if (!await postRepo.GetMany().AnyAsync(p => p.Id == id))
+        {
+            throw new NotFoundException($"Post with ID '{id}' not found");
+        }
+
+        return Ok(await postDtoBuilder.GetCommentsForPostAsync(id));
     }
 
     [HttpPost("{id:int}/likes")]
     public async Task<ActionResult> LikePost([FromRoute] int id, [FromBody] LikeDto request)
     {
         Post post = await postRepo.GetSingleAsync(id);
-        GetExistingUser(request.UserId);
+        await VerifyUserExistsAsync(request.UserId);
         await postRepo.LikeAsync(id, request.UserId);
         await notifier.NotifyAsync(post.UserId, request.UserId, Notifier.Like, postId: id);
         return NoContent();
@@ -219,8 +201,8 @@ public class PostsController : ControllerBase
     public async Task<ActionResult<IEnumerable<TagDto>>> GetTagsForPost([FromRoute] int id)
     {
         await postRepo.GetSingleAsync(id);
-        List<TagDto> dtos = postRepo.GetTagsForPost(id).ToList().Select(DtoMapper.ToDto).ToList();
-        return Ok(dtos);
+        List<Tag> tags = await postRepo.GetTagsForPost(id).ToListAsync();
+        return Ok(tags.Select(DtoMapper.ToDto).ToList());
     }
 
     [HttpPost("{id:int}/tags/{tagId:int}")]
@@ -239,14 +221,11 @@ public class PostsController : ControllerBase
         return NoContent();
     }
 
-    private User GetExistingUser(int userId)
+    private async Task VerifyUserExistsAsync(int userId)
     {
-        User? user = userRepo.GetMany().SingleOrDefault(u => u.Id == userId);
-        if (user is null)
+        if (!await userRepo.GetMany().AnyAsync(u => u.Id == userId))
         {
             throw new ArgumentException($"User with ID '{userId}' does not exist.");
         }
-
-        return user;
     }
 }

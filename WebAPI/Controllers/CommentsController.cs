@@ -1,6 +1,7 @@
 using ApiContracts;
 using Entities;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using RepositoryContracts;
 using WebAPI.Services;
 
@@ -13,14 +14,16 @@ public class CommentsController : ControllerBase
     private readonly ICommentRepository commentRepo;
     private readonly IPostRepository postRepo;
     private readonly IUserRepository userRepo;
+    private readonly PostDtoBuilder dtoBuilder;
     private readonly Notifier notifier;
 
     public CommentsController(ICommentRepository commentRepo, IPostRepository postRepo, IUserRepository userRepo,
-        Notifier notifier)
+        PostDtoBuilder dtoBuilder, Notifier notifier)
     {
         this.commentRepo = commentRepo;
         this.postRepo = postRepo;
         this.userRepo = userRepo;
+        this.dtoBuilder = dtoBuilder;
         this.notifier = notifier;
     }
 
@@ -29,13 +32,13 @@ public class CommentsController : ControllerBase
     {
         DtoMapper.RequireNotBlank(request.Body, "Body");
 
-        User? author = userRepo.GetMany().SingleOrDefault(u => u.Id == request.UserId);
+        User? author = await userRepo.GetMany().SingleOrDefaultAsync(u => u.Id == request.UserId);
         if (author is null)
         {
             throw new ArgumentException($"User with ID '{request.UserId}' does not exist.");
         }
 
-        Post? post = postRepo.GetMany().SingleOrDefault(p => p.Id == request.PostId);
+        Post? post = await postRepo.GetMany().SingleOrDefaultAsync(p => p.Id == request.PostId);
         if (post is null)
         {
             throw new ArgumentException($"Post with ID '{request.PostId}' does not exist.");
@@ -44,7 +47,7 @@ public class CommentsController : ControllerBase
         Comment? parent = null;
         if (request.ParentCommentId is not null)
         {
-            parent = commentRepo.GetMany().SingleOrDefault(c => c.Id == request.ParentCommentId);
+            parent = await commentRepo.GetMany().SingleOrDefaultAsync(c => c.Id == request.ParentCommentId);
             if (parent is null || parent.PostId != request.PostId)
             {
                 throw new ArgumentException(
@@ -89,8 +92,7 @@ public class CommentsController : ControllerBase
     [HttpGet("{id:int}")]
     public async Task<ActionResult<CommentDto>> GetSingleComment([FromRoute] int id)
     {
-        Comment comment = await commentRepo.GetSingleAsync(id);
-        return Ok(await ToDtoAsync(comment, GetUserNames()));
+        return Ok(await dtoBuilder.BuildCommentAsync(id));
     }
 
     [HttpGet]
@@ -108,11 +110,7 @@ public class CommentsController : ControllerBase
 
         if (!string.IsNullOrWhiteSpace(userName))
         {
-            List<int> matchingUserIds = userRepo.GetMany()
-                .Where(u => u.UserName.ToLower() == userName.ToLower())
-                .Select(u => u.Id)
-                .ToList();
-            comments = comments.Where(c => matchingUserIds.Contains(c.UserId));
+            comments = comments.Where(c => c.User.UserName.ToLower() == userName.ToLower());
         }
 
         if (postId is not null)
@@ -120,20 +118,14 @@ public class CommentsController : ControllerBase
             comments = comments.Where(c => c.PostId == postId);
         }
 
-        Dictionary<int, string> userNames = GetUserNames();
-        List<CommentDto> dtos = new();
-        foreach (Comment comment in comments.OrderBy(c => c.CreatedDate).ToList())
-        {
-            dtos.Add(await ToDtoAsync(comment, userNames));
-        }
-
-        return Ok(dtos);
+        return Ok(await dtoBuilder.BuildCommentsAsync(comments.OrderBy(c => c.CreatedDate)));
     }
 
     [HttpDelete("{id:int}")]
     public async Task<ActionResult> DeleteComment([FromRoute] int id)
     {
-        await DeleteWithRepliesAsync(id);
+        // the database removes the replies (and their replies), likes and notifications with it
+        await commentRepo.DeleteAsync(id);
         return NoContent();
     }
 
@@ -142,21 +134,14 @@ public class CommentsController : ControllerBase
     {
         await commentRepo.GetSingleAsync(id);
 
-        Dictionary<int, string> userNames = GetUserNames();
-        List<CommentDto> dtos = new();
-        foreach (Comment reply in commentRepo.GetReplies(id).OrderBy(c => c.CreatedDate).ToList())
-        {
-            dtos.Add(await ToDtoAsync(reply, userNames));
-        }
-
-        return Ok(dtos);
+        return Ok(await dtoBuilder.BuildCommentsAsync(commentRepo.GetReplies(id).OrderBy(c => c.CreatedDate)));
     }
 
     [HttpPost("{id:int}/likes")]
     public async Task<ActionResult> LikeComment([FromRoute] int id, [FromBody] LikeDto request)
     {
         Comment comment = await commentRepo.GetSingleAsync(id);
-        bool userExists = userRepo.GetMany().Any(u => u.Id == request.UserId);
+        bool userExists = await userRepo.GetMany().AnyAsync(u => u.Id == request.UserId);
         if (!userExists)
         {
             throw new ArgumentException($"User with ID '{request.UserId}' does not exist.");
@@ -174,29 +159,5 @@ public class CommentsController : ControllerBase
         await commentRepo.UnlikeAsync(id, userId);
         await notifier.RetractAsync(comment.UserId, userId, Notifier.CommentLike, comment.PostId, comment.Id);
         return NoContent();
-    }
-
-    private async Task DeleteWithRepliesAsync(int id)
-    {
-        List<int> replyIds = commentRepo.GetReplies(id).Select(c => c.Id).ToList();
-        await commentRepo.DeleteAsync(id);
-        foreach (int replyId in replyIds)
-        {
-            await DeleteWithRepliesAsync(replyId);
-        }
-    }
-
-    private async Task<CommentDto> ToDtoAsync(Comment comment, Dictionary<int, string> userNames)
-    {
-        CommentDto dto = DtoMapper.ToDto(comment,
-            userNames.GetValueOrDefault(comment.UserId, DtoMapper.DeletedUserName),
-            await commentRepo.GetLikeCountAsync(comment.Id));
-        dto.LikedByUserIds = commentRepo.GetLikerIds(comment.Id).ToList();
-        return dto;
-    }
-
-    private Dictionary<int, string> GetUserNames()
-    {
-        return userRepo.GetMany().ToDictionary(u => u.Id, u => u.UserName);
     }
 }

@@ -9,4 +9,8 @@ public class Message
     public string? MediaUrl { get; set; }
     public string? MediaKind { get; set; }
     public DateTime CreatedDate { get; set; }
+
+    // navigation properties (EF Core)
+    public Conversation Conversation { get; set; } = null!;
+    public User Sender { get; set; } = null!;
 }

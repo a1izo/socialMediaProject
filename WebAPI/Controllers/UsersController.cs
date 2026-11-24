@@ -1,5 +1,6 @@
 using ApiContracts;
 using Entities;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
 using RepositoryContracts;
 using WebAPI.Profiles;
@@ -89,7 +90,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet]
-    public ActionResult<IEnumerable<UserDto>> GetManyUsers([FromQuery] string? userNameContains)
+    public async Task<ActionResult<IEnumerable<UserDto>>> GetManyUsers([FromQuery] string? userNameContains)
     {
         IQueryable<User> users = userRepo.GetMany();
         if (!string.IsNullOrWhiteSpace(userNameContains))
@@ -97,21 +98,16 @@ public class UsersController : ControllerBase
             users = users.Where(u => u.UserName.ToLower().Contains(userNameContains.ToLower()));
         }
 
-        List<UserDto> dtos = users.OrderBy(u => u.Id).ToList().Select(DtoMapper.ToDto).ToList();
-        return Ok(dtos);
+        List<User> result = await users.OrderBy(u => u.Id).ToListAsync();
+        return Ok(result.Select(DtoMapper.ToDto).ToList());
     }
 
     [HttpDelete("{id:int}")]
     public async Task<ActionResult> DeleteUser([FromRoute] int id)
     {
+        // the database removes everything that belongs to the user with it:
+        // profile, modules, posts, comments, likes, follows, notifications and conversations
         await userRepo.DeleteAsync(id);
-
-        Profile? profile = profileRepo.GetMany().SingleOrDefault(p => p.UserId == id);
-        if (profile is not null)
-        {
-            await profileRepo.DeleteAsync(profile.Id);
-        }
-
         return NoContent();
     }
 
@@ -119,16 +115,16 @@ public class UsersController : ControllerBase
     public async Task<ActionResult<IEnumerable<UserDto>>> GetFollowers([FromRoute] int id)
     {
         await userRepo.GetSingleAsync(id);
-        List<UserDto> dtos = userRepo.GetFollowers(id).ToList().Select(DtoMapper.ToDto).ToList();
-        return Ok(dtos);
+        List<User> followers = await userRepo.GetFollowers(id).OrderBy(u => u.UserName).ToListAsync();
+        return Ok(followers.Select(DtoMapper.ToDto).ToList());
     }
 
     [HttpGet("{id:int}/following")]
     public async Task<ActionResult<IEnumerable<UserDto>>> GetFollowing([FromRoute] int id)
     {
         await userRepo.GetSingleAsync(id);
-        List<UserDto> dtos = userRepo.GetFollowing(id).ToList().Select(DtoMapper.ToDto).ToList();
-        return Ok(dtos);
+        List<User> following = await userRepo.GetFollowing(id).OrderBy(u => u.UserName).ToListAsync();
+        return Ok(following.Select(DtoMapper.ToDto).ToList());
     }
 
     [HttpPost("{id:int}/following")]

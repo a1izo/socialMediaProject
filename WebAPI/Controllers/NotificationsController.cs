@@ -1,6 +1,7 @@
 using ApiContracts;
 using Entities;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using RepositoryContracts;
 
 namespace WebAPI.Controllers;
@@ -11,48 +12,44 @@ public class NotificationsController : ControllerBase
 {
     private readonly INotificationRepository notificationRepo;
     private readonly IMessageRepository messageRepo;
-    private readonly IUserRepository userRepo;
-    private readonly IPostRepository postRepo;
-    private readonly ICommentRepository commentRepo;
 
-    public NotificationsController(INotificationRepository notificationRepo, IMessageRepository messageRepo,
-        IUserRepository userRepo, IPostRepository postRepo, ICommentRepository commentRepo)
+    public NotificationsController(INotificationRepository notificationRepo, IMessageRepository messageRepo)
     {
         this.notificationRepo = notificationRepo;
         this.messageRepo = messageRepo;
-        this.userRepo = userRepo;
-        this.postRepo = postRepo;
-        this.commentRepo = commentRepo;
     }
 
     [HttpGet("notifications")]
-    public ActionResult<IEnumerable<NotificationDto>> GetNotifications([FromRoute] int userId, [FromQuery] int? take)
+    public async Task<ActionResult<IEnumerable<NotificationDto>>> GetNotifications([FromRoute] int userId, [FromQuery] int? take)
     {
-        Dictionary<int, string> userNames = userRepo.GetMany().ToDictionary(u => u.Id, u => u.UserName);
-        Dictionary<int, Post> posts = postRepo.GetMany().ToDictionary(p => p.Id);
-        Dictionary<int, Comment> comments = commentRepo.GetMany().ToDictionary(c => c.Id);
-
-        List<NotificationDto> dtos = notificationRepo.GetMany()
+        // one query: the actor, post and comment come along through the navigation properties
+        var rows = await notificationRepo.GetMany()
             .Where(n => n.UserId == userId)
             .OrderByDescending(n => n.CreatedDate)
             .Take(take ?? 100)
-            .ToList()
-            .Select(n => new NotificationDto
+            .Select(n => new
             {
-                Id = n.Id,
-                Type = n.Type,
-                ActorId = n.ActorId,
-                ActorUserName = userNames.GetValueOrDefault(n.ActorId, DtoMapper.DeletedUserName),
-                PostId = n.PostId,
-                PostTitle = n.PostId is not null && posts.TryGetValue(n.PostId.Value, out Post? post) ? Summary(post) : null,
-                CommentId = n.CommentId,
-                CommentExcerpt = n.CommentId is not null && comments.TryGetValue(n.CommentId.Value, out Comment? comment)
-                    ? Excerpt(comment.Body)
-                    : null,
-                CreatedDate = n.CreatedDate,
-                IsRead = n.IsRead
+                Notification = n,
+                ActorUserName = n.Actor.UserName,
+                PostTitle = n.Post != null ? n.Post.Title : null,
+                PostBody = n.Post != null ? n.Post.Body : null,
+                CommentBody = n.Comment != null ? n.Comment.Body : null
             })
-            .ToList();
+            .ToListAsync();
+
+        List<NotificationDto> dtos = rows.Select(r => new NotificationDto
+        {
+            Id = r.Notification.Id,
+            Type = r.Notification.Type,
+            ActorId = r.Notification.ActorId,
+            ActorUserName = r.ActorUserName,
+            PostId = r.Notification.PostId,
+            PostTitle = r.PostBody is null ? null : Summary(r.PostTitle, r.PostBody),
+            CommentId = r.Notification.CommentId,
+            CommentExcerpt = r.CommentBody is null ? null : Excerpt(r.CommentBody),
+            CreatedDate = r.Notification.CreatedDate,
+            IsRead = r.Notification.IsRead
+        }).ToList();
         return Ok(dtos);
     }
 
@@ -64,12 +61,14 @@ public class NotificationsController : ControllerBase
     }
 
     [HttpGet("unread")]
-    public ActionResult<UnreadCountsDto> GetUnreadCounts([FromRoute] int userId)
+    public async Task<ActionResult<UnreadCountsDto>> GetUnreadCounts([FromRoute] int userId)
     {
         int unreadMessages = 0;
         int requests = 0;
-        foreach (Conversation conversation in messageRepo.GetConversations()
-                     .Where(c => c.UserOneId == userId || c.UserTwoId == userId).ToList())
+        List<Conversation> conversations = await messageRepo.GetConversations()
+            .Where(c => c.UserOneId == userId || c.UserTwoId == userId)
+            .ToListAsync();
+        foreach (Conversation conversation in conversations)
         {
             if (!conversation.IsAccepted && conversation.StartedById != userId)
             {
@@ -78,21 +77,21 @@ public class NotificationsController : ControllerBase
             }
 
             DateTime? lastRead = conversation.UserOneId == userId ? conversation.UserOneLastRead : conversation.UserTwoLastRead;
-            unreadMessages += messageRepo.GetMessages(conversation.Id)
-                .Count(m => m.SenderId != userId && (lastRead == null || m.CreatedDate > lastRead));
+            unreadMessages += await messageRepo.GetMessages(conversation.Id)
+                .CountAsync(m => m.SenderId != userId && (lastRead == null || m.CreatedDate > lastRead));
         }
 
         return Ok(new UnreadCountsDto
         {
-            Notifications = notificationRepo.GetMany().Count(n => n.UserId == userId && !n.IsRead),
+            Notifications = await notificationRepo.GetMany().CountAsync(n => n.UserId == userId && !n.IsRead),
             Messages = unreadMessages,
             Requests = requests
         });
     }
 
-    private static string Summary(Post post)
+    private static string Summary(string? title, string body)
     {
-        return string.IsNullOrWhiteSpace(post.Title) ? Excerpt(post.Body) : post.Title;
+        return string.IsNullOrWhiteSpace(title) ? Excerpt(body) : title;
     }
 
     private static string Excerpt(string text)

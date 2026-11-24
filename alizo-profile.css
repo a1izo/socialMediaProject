@@ -1,0 +1,713 @@
+/* alizo ♡
+   paste into: customize > advanced > custom css
+   uses the avatar and banner already on the profile, and only fonts the site already loads */
+
+& {
+    --pink: #ff6fae;
+    --blush: #ffc2dc;
+    --paper: #fff6f0;
+    --ink: #1b0e15;
+    --bg: #140f14 !important;
+    --surface: #1d161d !important;
+    --surface-2: #261c26 !important;
+    --text: #fff2f7 !important;
+    --muted: #c7a3b6 !important;
+    --accent: #ff6fae !important;
+    --accent-2: #ffc2dc !important;
+    --on-accent: #1b0e15 !important;
+    --line: #4a3043 !important;
+    --glow-color: #ff6fae !important;
+    --radius: 18px !important;
+    --font-display: "Unbounded", system-ui, sans-serif !important;
+    --font-body: "Space Grotesk", system-ui, sans-serif !important;
+    --font-mono: "JetBrains Mono", ui-monospace, monospace !important;
+    color: var(--text);
+    background-color: #140f14 !important;
+    background-image:
+        radial-gradient(circle at 12% 0%, rgba(255, 111, 174, 0.18), transparent 38%),
+        radial-gradient(circle at 92% 28%, rgba(255, 194, 220, 0.12), transparent 34%),
+        radial-gradient(rgba(255, 111, 174, 0.16) 1px, transparent 1.6px) !important;
+    background-size: auto, auto, 22px 22px !important;
+    background-attachment: scroll !important;
+}
+
+/* softer film grain, so the dark background stays dark */
+.profile-fx::before {
+    opacity: 0.1 !important;
+}
+
+::selection {
+    color: var(--ink);
+    background: var(--pink);
+}
+
+/* ---------- banner + avatar ----------
+   the banner has a see-through starburst at the bottom left. the avatar sits in it, and a pink
+   outline follows the banner's real shape (burst and bottom curve included) */
+
+.banner {
+    margin: 18px 18px 0;
+    background: none !important;
+    border: 0 !important;
+}
+
+.banner-img {
+    border-radius: 18px 18px 0 0;
+    filter: drop-shadow(5px 5px 0 var(--pink)) drop-shadow(0 18px 28px rgba(255, 111, 174, 0.25));
+}
+
+.banner::before {
+    content: "";
+    position: absolute;
+    z-index: 4;
+    top: -15px;
+    left: 34%;
+    width: 128px;
+    height: 30px;
+    background: repeating-linear-gradient(45deg, rgba(255, 194, 220, 0.9) 0 8px, rgba(255, 111, 174, 0.9) 8px 16px);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+    transform: rotate(-4deg);
+    animation: alizo-sway 6s ease-in-out infinite;
+}
+
+.banner::after {
+    content: "♡ NO.007 ♡";
+    position: absolute;
+    z-index: 4;
+    top: 14px;
+    right: 16px;
+    padding: 22px 10px 5px;
+    font: 700 9px/1 var(--font-mono);
+    letter-spacing: 0.14em;
+    color: var(--ink);
+    background:
+        repeating-linear-gradient(90deg, var(--ink) 0 2px, transparent 2px 4px, var(--ink) 4px 5px, transparent 5px 7px, var(--ink) 7px 10px, transparent 10px 12px) left 10px top 6px / calc(100% - 20px) 12px no-repeat,
+        var(--paper);
+    border-radius: 2px;
+    box-shadow: 3px 3px 0 var(--pink);
+    transform: rotate(2.5deg);
+}
+
+.avatar-anchor {
+    transition: transform 0.45s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+
+.avatar-anchor:hover {
+    transform: translate(-50%, -50%) rotate(-6deg) scale(1.05) !important;
+}
+
+.profile-avatar {
+    border-radius: 50% !important;
+    clip-path: none !important;
+    filter: none !important;
+    box-shadow: 0 0 0 4px var(--pink), 0 0 0 8px var(--bg), 0 10px 26px rgba(255, 111, 174, 0.35) !important;
+}
+
+.profile-avatar img {
+    object-fit: cover;
+    filter: saturate(1.2) contrast(1.06);
+}
+
+.avatar-deco {
+    display: none !important;
+}
+
+/* a little ♡ bubble on the avatar */
+.avatar-anchor::after {
+    content: "♡" !important;
+    position: absolute;
+    inset: auto 2% 2% auto !important;
+    z-index: 3;
+    display: grid;
+    place-items: center;
+    width: 26% !important;
+    height: 26% !important;
+    font: 800 clamp(10px, 13cqw, 22px)/1 var(--font-mono);
+    color: var(--ink);
+    background: var(--blush) !important;
+    border: max(3px, 3cqw) solid var(--bg) !important;
+    border-radius: 50% !important;
+    -webkit-mask: none !important;
+    mask: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+    animation: alizo-beat 1.6s ease-in-out infinite !important;
+}
+
+.avatar-anchor::before {
+    content: none !important;
+}
+
+/* ---------- name, kicker and badges ---------- */
+
+.profile-name {
+    font-family: var(--font-display) !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.03em !important;
+    color: var(--pink) !important;
+    background: none !important;
+    -webkit-text-stroke: 0 !important;
+    text-shadow: 3px 3px 0 var(--paper), 7px 7px 0 rgba(255, 111, 174, 0.35) !important;
+    filter: none !important;
+    animation: alizo-bob 4.5s ease-in-out infinite !important;
+}
+
+.profile-name::before {
+    content: none !important;
+}
+
+.profile-name::after {
+    content: "♡" !important;
+    position: static !important;
+    display: inline-block;
+    margin-left: 0.12em;
+    font-size: 0.42em;
+    vertical-align: super;
+    color: var(--blush) !important;
+    text-shadow: none !important;
+    clip-path: none !important;
+    transform: none;
+    animation: alizo-beat 1.6s ease-in-out infinite !important;
+}
+
+.profile-handle {
+    gap: 8px !important;
+    margin-top: 16px !important;
+}
+
+.profile-handle > span,
+.profile-links > a,
+.profile-links > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 26px;
+    padding: 0 11px;
+    font: 500 12px/1 var(--font-mono);
+    color: var(--text) !important;
+    text-decoration: none;
+    background: #221922;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+}
+
+.profile-handle > span:first-child {
+    font-weight: 700;
+    color: var(--ink) !important;
+    background: var(--pink);
+    border-color: var(--pink);
+}
+
+.profile-handle .badge {
+    color: var(--ink) !important;
+    background: var(--blush) !important;
+}
+
+.profile-joined::before {
+    content: "✦";
+    color: var(--pink);
+}
+
+.profile-links {
+    gap: 8px !important;
+    margin-top: 10px !important;
+}
+
+.profile-links b {
+    color: var(--pink) !important;
+}
+
+.profile-links > a:hover {
+    border-color: var(--pink);
+    transform: translateY(-2px);
+}
+
+.profile-links > a {
+    transition: transform 0.25s cubic-bezier(0.3, 1.6, 0.5, 1), border-color 0.2s;
+}
+
+.profile-tagline {
+    color: var(--blush) !important;
+    font-family: var(--font-mono) !important;
+}
+
+.profile-actions .btn {
+    border-radius: 999px !important;
+    font-weight: 700;
+    transition: transform 0.3s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+
+.profile-actions .btn:hover {
+    transform: translateY(-2px) rotate(-2deg);
+}
+
+.profile-actions .btn-primary {
+    color: var(--ink) !important;
+    background: var(--pink) !important;
+    border-color: var(--pink) !important;
+    box-shadow: 3px 3px 0 var(--paper);
+}
+
+/* ---------- modules: dark cards with paper labels ---------- */
+
+.module {
+    background: linear-gradient(180deg, rgba(255, 111, 174, 0.07), transparent 45%), var(--surface) !important;
+    border: 1.5px solid var(--line) !important;
+    border-radius: 18px !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 14px 32px rgba(0, 0, 0, 0.35) !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    transition: transform 0.35s cubic-bezier(0.3, 1.6, 0.5, 1), box-shadow 0.3s, border-color 0.3s;
+}
+
+.module:hover {
+    border-color: var(--pink) !important;
+    box-shadow: 6px 6px 0 var(--pink), 0 20px 44px rgba(255, 111, 174, 0.16) !important;
+    transform: translateY(-4px) rotate(-0.4deg);
+}
+
+.module:nth-child(even):hover {
+    transform: translateY(-4px) rotate(0.4deg);
+}
+
+.module::before,
+.module::after {
+    border-color: var(--pink) !important;
+}
+
+.module-hud {
+    color: var(--pink) !important;
+    font-family: var(--font-mono) !important;
+    letter-spacing: 0.16em !important;
+    opacity: 0.75;
+}
+
+.module-title {
+    display: inline-block !important;
+    margin-bottom: 16px !important;
+    padding: 6px 14px 7px !important;
+    font-family: var(--font-display) !important;
+    font-size: 1.02rem !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.01em !important;
+    text-transform: lowercase !important;
+    color: var(--ink) !important;
+    background: var(--paper) !important;
+    border-radius: 3px;
+    box-shadow: 4px 4px 0 var(--pink);
+    text-shadow: none !important;
+    transform: rotate(-2deg);
+}
+
+.module:nth-child(even) .module-title {
+    transform: rotate(1.5deg);
+}
+
+.module-title::after {
+    content: " ♡" !important;
+    position: static !important;
+    display: inline !important;
+    width: auto !important;
+    height: auto !important;
+    margin: 0 !important;
+    color: var(--pink) !important;
+    background: none !important;
+}
+
+.module-empty::before {
+    content: "✿ ";
+    color: var(--pink);
+}
+
+.module-empty {
+    color: var(--muted) !important;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+}
+
+/* bio and any markdown */
+.markdown {
+    color: var(--text);
+    line-height: 1.6;
+}
+
+.markdown strong {
+    color: var(--blush);
+}
+
+.markdown em {
+    color: var(--pink);
+}
+
+.markdown a {
+    color: var(--pink) !important;
+    text-decoration: underline wavy rgba(255, 194, 220, 0.7);
+    text-underline-offset: 4px;
+}
+
+.markdown ul {
+    padding-left: 0 !important;
+}
+
+.markdown li {
+    list-style: none !important;
+}
+
+.markdown ul li::marker {
+    content: none !important;
+}
+
+.markdown li::before {
+    content: "♡ ";
+    color: var(--pink);
+}
+
+.markdown code {
+    display: inline-block;
+    margin: 0 4px 6px 0;
+    padding: 5px 10px;
+    font: 700 11px/1 var(--font-mono);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text);
+    background: #241a23;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    transition: transform 0.25s cubic-bezier(0.3, 1.6, 0.5, 1), border-color 0.2s;
+}
+
+.markdown code:hover {
+    color: var(--ink);
+    background: var(--pink);
+    border-color: var(--pink);
+    transform: translateY(-2px) rotate(-2deg);
+}
+
+/* stats */
+.stat {
+    background: #1a1319 !important;
+    border: 1.5px dashed var(--line) !important;
+    border-radius: 14px !important;
+    transition: transform 0.3s cubic-bezier(0.3, 1.6, 0.5, 1), border-color 0.2s;
+}
+
+.stat:hover {
+    border-color: var(--pink) !important;
+    transform: translateY(-3px) rotate(-1.5deg);
+}
+
+.stat > :first-child {
+    font-family: var(--font-display) !important;
+    color: var(--pink) !important;
+}
+
+.stat > :last-child {
+    color: var(--muted) !important;
+    font-family: var(--font-mono) !important;
+}
+
+/* music embed */
+.embed iframe {
+    border-radius: 14px !important;
+}
+
+/* posts inside modules */
+.post-compact {
+    background: #1a1319 !important;
+    border: 1px solid var(--line) !important;
+    border-radius: 14px !important;
+}
+
+.post-compact:hover {
+    border-color: var(--pink) !important;
+}
+
+.post-compact .media-grid {
+    max-width: 440px;
+}
+
+.post-compact .piece-index {
+    color: var(--pink) !important;
+}
+
+.post-compact .post-title {
+    color: var(--text) !important;
+}
+
+.post-compact .like-button.is-liked,
+.post-compact .piece-tag {
+    color: var(--pink) !important;
+}
+
+/* ---------- the quote: big sticker letters, no card ---------- */
+
+.module-text {
+    display: grid;
+    place-items: center;
+    min-height: 260px;
+    background: none !important;
+    border: 0 !important;
+    box-shadow: none !important;
+}
+
+.module-text:hover {
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+.module-text .module-hud {
+    display: none !important;
+}
+
+.module-text .md-h1 {
+    margin: 0;
+    font-family: var(--font-display) !important;
+    font-size: clamp(2.4rem, 1rem + 4.6vw, 5.2rem) !important;
+    font-weight: 800 !important;
+    line-height: 1.02;
+    letter-spacing: -0.03em;
+    text-transform: lowercase;
+    color: var(--pink) !important;
+    text-shadow: 3px 3px 0 var(--paper), 8px 8px 0 rgba(255, 111, 174, 0.35) !important;
+    transform: rotate(-3deg);
+    animation: alizo-bob 5s ease-in-out infinite;
+}
+
+.module-text .md-h1::after {
+    content: "♡";
+    display: inline-block;
+    margin-left: 0.15em;
+    font-size: 0.5em;
+    vertical-align: super;
+    color: var(--blush);
+    text-shadow: none;
+    animation: alizo-beat 1.6s ease-in-out infinite;
+}
+
+.module-text::before,
+.module-text::after {
+    content: "✦";
+    position: absolute;
+    width: auto !important;
+    height: auto !important;
+    border: 0 !important;
+    opacity: 1 !important;
+    font-size: 34px;
+    line-height: 1;
+    color: var(--blush);
+    animation: alizo-twinkle 2.4s ease-in-out infinite;
+}
+
+.module-text::before {
+    top: 14% !important;
+    left: 6% !important;
+}
+
+.module-text::after {
+    right: 8% !important;
+    bottom: 12% !important;
+    top: auto !important;
+    left: auto !important;
+    font-size: 24px;
+    color: var(--pink);
+    animation-delay: 1.2s;
+}
+
+/* ---------- the player: a cassette tape ---------- */
+
+.module-embed {
+    padding: 16px 16px 18px !important;
+    background:
+        radial-gradient(circle at 12px 12px, var(--ink) 3px, transparent 4px),
+        radial-gradient(circle at calc(100% - 12px) 12px, var(--ink) 3px, transparent 4px),
+        radial-gradient(circle at 12px calc(100% - 12px), var(--ink) 3px, transparent 4px),
+        radial-gradient(circle at calc(100% - 12px) calc(100% - 12px), var(--ink) 3px, transparent 4px),
+        linear-gradient(160deg, #ff8cc0, #ff5fa2 55%, #e2468a) !important;
+    border: 3px solid var(--ink) !important;
+    border-radius: 16px !important;
+    box-shadow: 6px 6px 0 var(--paper), 0 18px 40px rgba(255, 111, 174, 0.3) !important;
+}
+
+.module-embed:hover {
+    transform: translateY(-4px) rotate(1deg);
+    box-shadow: 8px 8px 0 var(--paper), 0 22px 44px rgba(255, 111, 174, 0.35) !important;
+}
+
+.module-embed::before,
+.module-embed::after {
+    display: none !important;
+}
+
+.module-embed .module-hud {
+    color: var(--ink) !important;
+    opacity: 0.7;
+}
+
+.module-embed .module-title {
+    box-shadow: 4px 4px 0 var(--ink);
+}
+
+.module-embed .module-title::after {
+    color: var(--ink) !important;
+}
+
+/* the paper label */
+.module-embed .module-body::before {
+    content: "side a   alizo mix";
+    display: block;
+    margin-bottom: 10px;
+    padding: 8px 12px 9px;
+    font: 700 12px/1 var(--font-mono);
+    letter-spacing: 0.12em;
+    color: var(--ink);
+    background:
+        repeating-linear-gradient(180deg, transparent 0 9px, rgba(255, 111, 174, 0.35) 9px 10px),
+        var(--paper);
+    border-radius: 4px;
+    transform: rotate(-1deg);
+}
+
+/* the window with the real player, and two reels under it */
+.module-embed .embed {
+    position: relative;
+    padding: 8px 8px 74px;
+    background: var(--ink);
+    border-radius: 12px;
+    box-shadow: inset 0 0 0 2px rgba(255, 194, 220, 0.25);
+}
+
+.module-embed .embed iframe {
+    display: block;
+    width: 100%;
+    border-radius: 10px !important;
+}
+
+.module-embed .embed::before,
+.module-embed .embed::after {
+    content: "";
+    position: absolute;
+    bottom: 12px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background:
+        radial-gradient(circle, var(--ink) 0 7px, var(--paper) 8px 10px, transparent 11px),
+        repeating-conic-gradient(var(--paper) 0 10deg, var(--blush) 10deg 60deg);
+    box-shadow: 0 0 0 4px #3a2531;
+    animation: alizo-spin 3s linear infinite;
+}
+
+.module-embed .embed::before {
+    left: 22%;
+}
+
+.module-embed .embed::after {
+    right: 22%;
+}
+
+/* the tape running between the reels */
+.module-embed .module-body::after {
+    content: "";
+    display: block;
+    width: 56%;
+    height: 6px;
+    margin: -50px auto 44px;
+    position: relative;
+    z-index: 1;
+    background: #3a2531;
+    border-radius: 3px;
+    pointer-events: none;
+}
+
+@keyframes alizo-twinkle {
+    0%, 100% { opacity: 1; transform: scale(1) rotate(0deg); }
+    50% { opacity: 0.35; transform: scale(0.7) rotate(25deg); }
+}
+
+/* ---------- motion ---------- */
+
+@keyframes alizo-bob {
+    50% { transform: translateY(-4px) rotate(-1deg); }
+}
+
+@keyframes alizo-beat {
+    0%, 100% { transform: scale(1); }
+    25% { transform: scale(1.3); }
+    50% { transform: scale(0.95); }
+}
+
+@keyframes alizo-sway {
+    50% { transform: rotate(-3deg) translateY(-2px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .profile-name {
+        animation: none !important;
+    }
+
+    .profile-name::after {
+        animation: none !important;
+    }
+
+    .banner::before {
+        animation: none !important;
+    }
+
+    .module-text .md-h1 {
+        animation: none !important;
+    }
+
+    .module-text::before {
+        animation: none !important;
+    }
+
+    .module-text::after {
+        animation: none !important;
+    }
+
+    .module-embed .embed::before {
+        animation: none !important;
+    }
+
+    .module-embed .embed::after {
+        animation: none !important;
+    }
+}
+
+/* ---------- phones ---------- */
+
+@media (max-width: 760px) {
+    .banner {
+        margin: 12px 10px 0;
+    }
+
+    .banner-img {
+        border-radius: 12px 12px 0 0;
+        filter: drop-shadow(3px 3px 0 var(--pink));
+    }
+
+    .banner::before {
+        width: 84px;
+        height: 22px;
+        top: -10px;
+    }
+
+    .banner::after {
+        top: 8px;
+        right: 8px;
+        padding: 16px 7px 4px;
+        font-size: 7px;
+    }
+
+    .module-title {
+        font-size: 0.92rem !important;
+    }
+
+    .module-text {
+        min-height: 180px;
+    }
+}
+
+@keyframes alizo-spin {
+    to { transform: rotate(360deg); }
+}

@@ -1,6 +1,7 @@
 using System.Text.Json;
 using ApiContracts;
 using Entities;
+using Microsoft.EntityFrameworkCore;
 using RepositoryContracts;
 
 namespace WebAPI.Profiles;
@@ -9,7 +10,7 @@ internal static class ProfileDefaults
 {
     public static async Task<Profile> GetOrCreateAsync(IProfileRepository profileRepo, User user)
     {
-        Profile? profile = profileRepo.GetMany().SingleOrDefault(p => p.UserId == user.Id);
+        Profile? profile = await profileRepo.GetMany().SingleOrDefaultAsync(p => p.UserId == user.Id);
         return profile ?? await CreateAsync(profileRepo, user);
     }
 

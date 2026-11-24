@@ -1,5 +1,6 @@
 using ApiContracts;
 using Entities;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
 using RepositoryContracts;
 
@@ -47,7 +48,7 @@ public class TagsController : ControllerBase
     }
 
     [HttpGet]
-    public ActionResult<IEnumerable<TagDto>> GetManyTags([FromQuery] string? nameContains)
+    public async Task<ActionResult<IEnumerable<TagDto>>> GetManyTags([FromQuery] string? nameContains)
     {
         IQueryable<Tag> tags = tagRepo.GetMany();
         if (!string.IsNullOrWhiteSpace(nameContains))
@@ -55,8 +56,8 @@ public class TagsController : ControllerBase
             tags = tags.Where(t => t.Name.ToLower().Contains(nameContains.ToLower()));
         }
 
-        List<TagDto> dtos = tags.OrderBy(t => t.Name).ToList().Select(DtoMapper.ToDto).ToList();
-        return Ok(dtos);
+        List<Tag> result = await tags.OrderBy(t => t.Name).ToListAsync();
+        return Ok(result.Select(DtoMapper.ToDto).ToList());
     }
 
     [HttpDelete("{id:int}")]

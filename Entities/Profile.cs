@@ -12,4 +12,7 @@ public class Profile
     public string? CustomCss { get; set; }
     public string? StickersJson { get; set; }
     public DateTime UpdatedDate { get; set; }
+
+    // navigation properties (EF Core)
+    public User User { get; set; } = null!;
 }

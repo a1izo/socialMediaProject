@@ -1,6 +1,7 @@
 using System.Text.Json;
 using ApiContracts;
 using Entities;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
 using RepositoryContracts;
 using WebAPI.Profiles;
@@ -30,21 +31,21 @@ public class ProfilesController : ControllerBase
     [HttpGet("{userName}")]
     public async Task<ActionResult<ProfileDto>> GetProfile([FromRoute] string userName)
     {
-        User? user = userRepo.GetMany().SingleOrDefault(u => u.UserName.ToLower() == userName.ToLower());
+        User? user = await userRepo.GetMany().SingleOrDefaultAsync(u => u.UserName.ToLower() == userName.ToLower());
         if (user is null)
         {
             throw new NotFoundException($"User '{userName}' not found");
         }
 
         Profile profile = await ProfileDefaults.GetOrCreateAsync(profileRepo, user);
-        List<ProfileModule> modules = profileRepo.GetModules(user.Id).ToList();
+        List<ProfileModule> modules = await profileRepo.GetModules(user.Id).ToListAsync();
         return Ok(DtoMapper.ToDto(profile, user, modules, await cardBuilder.GetStatsAsync(user.Id)));
     }
 
     [HttpGet("cards")]
     public async Task<ActionResult<IEnumerable<ProfileCardDto>>> GetCards([FromQuery] List<int> userIds)
     {
-        List<User> users = userRepo.GetMany().Where(u => userIds.Contains(u.Id)).ToList();
+        List<User> users = await userRepo.GetMany().Where(u => userIds.Contains(u.Id)).ToListAsync();
         List<ProfileCardDto> cards = new();
         foreach (User user in users)
         {
