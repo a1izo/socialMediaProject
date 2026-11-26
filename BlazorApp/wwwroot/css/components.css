@@ -113,19 +113,12 @@ textarea.input {
     line-height: 1.5;
 }
 
-.input-lg {
-    font-family: var(--font-display);
-    font-size: 1.3rem;
-    padding: 14px 14px;
-}
-
 .input-sm {
     padding: 6px 9px;
     font-size: 0.85rem;
 }
 
-select.input,
-.select-wrap select {
+select.input {
     cursor: pointer;
 }
 
@@ -146,12 +139,6 @@ select.input,
     letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--muted);
-}
-
-.field-label-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
 }
 
 .field-hint {
@@ -244,22 +231,6 @@ select.input,
     font-size: 0.66rem;
 }
 
-.select-wrap {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.select-wrap select {
-    padding: 6px 10px;
-    font-family: var(--font-mono);
-    font-size: 0.78rem;
-    color: var(--text);
-    background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-}
-
 /* ---------- tags ---------- */
 
 .tag-row {
@@ -295,36 +266,9 @@ select.input,
     border-color: var(--accent);
 }
 
-/* ---------- feed ---------- */
-
-.feed-layout {
-    display: grid;
-    gap: var(--space-4);
-}
-
 .feed-hero {
     position: relative;
     padding: var(--space-5) 0 var(--space-4);
-}
-
-.feed-title {
-    margin-top: var(--space-3);
-    font-size: var(--text-xl);
-}
-
-.feed-title-xl {
-    font-size: var(--text-3xl);
-    max-width: 14ch;
-}
-
-.feed-controls {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-3);
-    padding-top: var(--space-3);
-    border-top: 1px solid var(--line);
 }
 
 .post-list {
@@ -367,69 +311,6 @@ select.input,
 
 .post-card:hover::before {
     transform: scaleY(1);
-}
-
-.post-card.is-compact {
-    padding: var(--space-3) var(--space-4);
-    background: color-mix(in srgb, var(--surface-2) 50%, transparent);
-}
-
-.post-card-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-3);
-}
-
-.post-card-time {
-    font-family: var(--font-mono);
-    font-size: 0.7rem;
-    color: var(--muted);
-    margin-left: auto;
-}
-
-.post-card-title {
-    font-family: var(--font-display);
-    font-size: 1.15rem;
-    font-weight: 600;
-    line-height: 1.2;
-    text-decoration: none;
-    text-transform: var(--heading-case);
-    letter-spacing: var(--tracking);
-}
-
-.is-compact .post-card-title {
-    font-size: 0.98rem;
-}
-
-.post-card-excerpt {
-    margin: 0;
-    color: var(--muted);
-    font-size: 0.94rem;
-}
-
-.post-card-foot {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--space-3);
-}
-
-.post-card-stat {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    font-family: var(--font-mono);
-    font-size: 0.78rem;
-    color: var(--muted);
-    text-decoration: none;
-}
-
-.post-card-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    margin-left: auto;
 }
 
 .like-button {
@@ -695,12 +576,6 @@ select.input,
     font-size: 0.86rem;
 }
 
-.user-tile-actions {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-}
-
 /* ---------- post page + comments ---------- */
 
 .back-link {
@@ -716,28 +591,8 @@ select.input,
     color: var(--muted);
 }
 
-.post-full {
-    display: grid;
-    gap: var(--space-4);
-}
-
-.post-full-title {
-    font-size: var(--text-2xl);
-    font-weight: 800;
-    letter-spacing: -0.02em;
-}
-
 .post-full-body {
     font-size: 1.08rem;
-}
-
-.post-full-actions {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--space-3);
-    padding-top: var(--space-3);
-    border-top: 1px solid var(--line);
 }
 
 .section-title {
@@ -1055,15 +910,11 @@ select.input,
         padding: var(--space-3) var(--space-4);
     }
 
-    .post-card-tags {
-        margin-left: 0;
-    }
 }
 
 /* ---------- badges ---------- */
 
-.has-badge,
-.topnav-link {
+.has-badge {
     position: relative;
 }
 
@@ -1106,17 +957,6 @@ select.input,
 
 .guest-bar span {
     flex: 1;
-}
-
-.post-card-text {
-    font-size: 1.02rem;
-    line-height: 1.5;
-    text-decoration: none;
-    white-space: pre-line;
-}
-
-.post-card-text:hover {
-    color: var(--text);
 }
 
 /* ---------- media ---------- */
@@ -1304,10 +1144,6 @@ video.media-item {
 
 .search-section .section-title {
     margin-top: 0;
-}
-
-.page-heading {
-    font-size: var(--text-xl);
 }
 
 /* ---------- notifications ---------- */

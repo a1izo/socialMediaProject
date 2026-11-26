@@ -95,16 +95,6 @@ public class EfcCommentRepository : ICommentRepository
         await ctx.SaveChangesAsync();
     }
 
-    public Task<int> GetLikeCountAsync(int commentId)
-    {
-        return ctx.CommentLikes.CountAsync(l => l.CommentId == commentId);
-    }
-
-    public IQueryable<int> GetLikerIds(int commentId)
-    {
-        return ctx.CommentLikes.Where(l => l.CommentId == commentId).Select(l => l.UserId);
-    }
-
     public IQueryable<Comment> GetReplies(int commentId)
     {
         return ctx.Comments.Where(c => c.ParentCommentId == commentId);

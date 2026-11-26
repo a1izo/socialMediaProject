@@ -14,7 +14,6 @@
     }
 }
 
-
 body {
     font-size: 15px;
     letter-spacing: -0.005em;
@@ -22,12 +21,6 @@ body {
 
 .shell {
     padding-left: var(--sidebar-w);
-}
-
-/* the old top bar is gone */
-.topbar,
-.shell-scan {
-    display: none;
 }
 
 /* ---------- sidebar ---------- */
@@ -537,12 +530,6 @@ body {
     letter-spacing: -0.01em;
 }
 
-.tabs {
-    flex: 1;
-    display: flex;
-    align-self: stretch;
-}
-
 .tab {
     position: relative;
     flex: 1;
@@ -722,65 +709,6 @@ body {
     grid-template-columns: minmax(0, 1fr);
 }
 
-.post-avatar {
-    display: block;
-}
-
-.post-main {
-    display: grid;
-    gap: 4px;
-    min-width: 0;
-}
-
-.post-head {
-    display: flex;
-    align-items: baseline;
-    gap: 6px;
-    min-width: 0;
-    font-size: 15px;
-}
-
-.post-dot,
-.post-time {
-    flex: none;
-    color: var(--muted);
-    text-decoration: none;
-}
-
-.post-time:hover {
-    text-decoration: underline;
-    color: var(--muted);
-}
-
-.user-chip.is-inline {
-    min-width: 0;
-}
-
-.user-chip.is-inline .user-chip-text {
-    flex-direction: row;
-    align-items: baseline;
-    gap: 6px;
-    min-width: 0;
-}
-
-.user-chip.is-inline .user-chip-name {
-    font-size: 15px;
-    font-weight: 700;
-    border-bottom: 0;
-}
-
-.user-chip.is-inline .user-chip-handle {
-    overflow: hidden;
-    font-family: var(--font-body);
-    font-size: 15px;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-}
-
-.user-chip.is-inline .user-chip-link:hover .user-chip-name {
-    text-decoration: underline;
-}
-
 .post-title {
     font-size: 17px;
     font-weight: 700;
@@ -811,32 +739,6 @@ body {
     border-radius: 16px;
 }
 
-.post-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 2px 10px;
-    margin-top: 2px;
-}
-
-.post-tag {
-    font-size: 14px;
-    color: var(--accent-2);
-    text-decoration: none;
-}
-
-.post-tag:hover {
-    color: var(--accent-2);
-    text-decoration: underline;
-}
-
-.post-actions {
-    display: flex;
-    align-items: center;
-    gap: 36px;
-    margin-left: -8px;
-}
-
-.post-action,
 .like-button {
     display: inline-flex;
     align-items: center;
@@ -851,11 +753,6 @@ body {
     border: 0;
     border-radius: 999px;
     cursor: pointer;
-}
-
-.post-action:hover {
-    color: var(--accent-2);
-    background: color-mix(in srgb, var(--accent-2) 12%, transparent);
 }
 
 .like-button:hover {
@@ -879,10 +776,6 @@ body {
 
 .post-compact + .post-compact {
     margin-top: 8px;
-}
-
-.post-compact .post-actions {
-    gap: 16px;
 }
 
 /* ---------- right rail ---------- */
@@ -917,99 +810,9 @@ body {
     border-radius: 999px;
 }
 
-.rail-box {
-    display: grid;
-    padding: 14px 16px;
-    background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: 18px;
-}
-
-.rail-title {
-    margin-bottom: 6px;
-    font-family: var(--font-body);
-    font-size: 19px;
-    font-weight: 700;
-    letter-spacing: -0.01em;
-}
-
-.rail-tag {
-    display: grid;
-    padding: 9px 0;
-    font-weight: 700;
-    text-decoration: none;
-}
-
-.rail-tag:hover {
-    color: var(--text);
-}
-
-.rail-tag:hover span:first-child {
-    text-decoration: underline;
-}
-
-.rail-meta {
-    font-size: 13px;
-    font-weight: 400;
-    color: var(--muted);
-}
-
-.rail-person {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    padding: 9px 0;
-}
-
-.rail-person .user-chip {
-    flex: 1;
-}
-
-.rail-more {
-    padding-top: 8px;
-    font-size: 14px;
-    color: var(--accent-2);
-    text-decoration: none;
-}
-
-/* ---------- post page ---------- */
-
-.post-full {
-    display: grid;
-    gap: 12px;
-    padding: 16px;
-    background: none;
-    border: 0;
-    border-bottom: 1px solid var(--line);
-}
-
-.post-full::before,
-.post-full::after {
-    display: none;
-}
-
-.post-full > .hud-label {
-    order: 3;
-    font-size: 14px;
-}
-
-.post-full-title {
-    margin: 0;
-    font-family: var(--font-body);
-    font-size: 22px;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-}
-
 .post-full-body {
     font-size: 17px;
     line-height: 1.55;
-}
-
-.post-full-actions {
-    order: 4;
-    padding-top: 6px;
 }
 
 .comments {
@@ -1206,8 +1009,6 @@ body {
 /* a theme's "muted" color is picked against its card surface, not its background, so derive
    secondary text from the post's own text and background: it always contrasts */
 .post-themed .user-chip-handle,
-.post-themed .post-dot,
-.post-themed .post-time,
 .post-themed > .hud-label {
     color: color-mix(in srgb, var(--text) 68%, var(--bg));
 }
@@ -1217,36 +1018,12 @@ body {
     border-radius: max(6px, calc(min(var(--radius), 22px) - 6px));
 }
 
-/* a small dock in the author's surface color, so a red heart is visible even on a red post */
-.post-themed .post-actions,
-.post-themed .post-full-actions {
-    width: fit-content;
-    margin: 6px 0 4px;
-    padding: 0 6px;
-    gap: 14px;
-    background: color-mix(in srgb, var(--surface) 82%, transparent);
-    border: 1px solid color-mix(in srgb, var(--line) 60%, transparent);
-    border-radius: 999px;
-}
-
-.post-themed .post-full-actions {
-    width: auto;
-    padding: 2px 8px;
-    border-top: 1px solid color-mix(in srgb, var(--line) 60%, transparent);
-}
-
-.post-themed .post-action,
 .post-themed .like-button {
     color: var(--text);
 }
 
 .post-themed .like-button.is-liked {
     color: var(--accent);
-}
-
-.post-themed .post-tag {
-    color: var(--accent);
-    font-weight: 600;
 }
 
 /* the author's card style, translated to a feed card */
@@ -1299,22 +1076,9 @@ body {
     border-width: 0 2px 2px 0;
 }
 
-/* the main post on its own page */
-.post-full.post-themed {
-    margin: 14px 16px;
-    padding: 20px;
-}
-
 .search-section .post-list {
     display: grid;
     gap: 14px;
-}
-
-.post-full.post-themed .post-full-title {
-    font-family: var(--font-display);
-    text-transform: var(--heading-case);
-    letter-spacing: var(--tracking);
-    font-size: 26px;
 }
 
 /* the composer and guest bar sit on the same neutral cards as unthemed posts */
@@ -1559,11 +1323,6 @@ body {
 .piece-tag:hover {
     color: var(--accent);
     text-decoration: underline;
-}
-
-/* the old icon dock is not used by pieces */
-.piece .post-actions {
-    display: none;
 }
 
 /* compact pieces inside profile modules */

@@ -94,16 +94,6 @@ public class EfcPostRepository : IPostRepository
         await ctx.SaveChangesAsync();
     }
 
-    public Task<int> GetLikeCountAsync(int postId)
-    {
-        return ctx.PostLikes.CountAsync(l => l.PostId == postId);
-    }
-
-    public IQueryable<int> GetLikerIds(int postId)
-    {
-        return ctx.PostLikes.Where(l => l.PostId == postId).Select(l => l.UserId);
-    }
-
     public async Task AddTagAsync(int postId, int tagId)
     {
         if (!await ctx.Tags.AnyAsync(t => t.Id == tagId))

@@ -2,7 +2,6 @@ namespace BlazorApp.Services;
 
 public class PostQuery
 {
-    public string? TitleContains { get; set; }
     public int? UserId { get; set; }
     public string? OrderBy { get; set; }
     public int? Take { get; set; }
@@ -12,7 +11,6 @@ public class PostQuery
     public string ToQueryString()
     {
         List<string> parts = new();
-        if (!string.IsNullOrWhiteSpace(TitleContains)) parts.Add($"titleContains={Uri.EscapeDataString(TitleContains)}");
         if (UserId is not null) parts.Add($"userId={UserId}");
         if (!string.IsNullOrWhiteSpace(OrderBy)) parts.Add($"orderBy={Uri.EscapeDataString(OrderBy)}");
         if (Take is not null) parts.Add($"take={Take}");

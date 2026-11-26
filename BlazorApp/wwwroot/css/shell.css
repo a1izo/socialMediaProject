@@ -18,16 +18,6 @@
     animation: grain-shift 1.2s steps(6) infinite;
 }
 
-/* slow scanlines, only in void mode */
-.shell-scan {
-    position: fixed;
-    inset: 0;
-    z-index: 99;
-    pointer-events: none;
-    opacity: var(--scan-opacity);
-    background: repeating-linear-gradient(0deg, #fff 0 1px, transparent 1px 3px);
-}
-
 @keyframes grain-shift {
     0% { transform: translate(0, 0); }
     20% { transform: translate(-3%, 2%); }
@@ -35,49 +25,6 @@
     60% { transform: translate(-4%, 1%); }
     80% { transform: translate(3%, 3%); }
     100% { transform: translate(0, 0); }
-}
-
-/* ---------- top bar ---------- */
-
-.topbar {
-    position: sticky;
-    top: 0;
-    z-index: 50;
-    height: var(--topbar-h);
-    display: flex;
-    align-items: center;
-    gap: var(--space-5);
-    padding: 0 var(--space-5);
-    background: color-mix(in srgb, var(--bg) 82%, transparent);
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid var(--line);
-}
-
-/* tick ruler along the bottom edge of the bar */
-.topbar::after {
-    content: "";
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: -1px;
-    height: 6px;
-    pointer-events: none;
-    background:
-        repeating-linear-gradient(90deg, var(--line) 0 1px, transparent 1px 10px),
-        repeating-linear-gradient(90deg, var(--muted) 0 1px, transparent 1px 100px);
-    background-size: 100% 4px, 100% 6px;
-    background-repeat: no-repeat;
-    background-position: bottom;
-    opacity: 0.7;
-}
-
-.brand {
-    text-decoration: none;
-    color: var(--text);
-}
-
-.brand:hover {
-    color: var(--text);
 }
 
 /* wordmark with a red/blue split on hover */
@@ -116,16 +63,12 @@
 .wordmark::before { color: var(--accent); }
 .wordmark::after { color: var(--accent-2); }
 
-.brand:hover .wordmark::before {
+.sidebar-brand:hover .wordmark::before {
     animation: glitch-a 380ms steps(2) 1 forwards;
 }
 
-.brand:hover .wordmark::after {
+.sidebar-brand:hover .wordmark::after {
     animation: glitch-b 380ms steps(2) 1 forwards;
-}
-
-.wordmark-lg {
-    font-size: var(--text-3xl);
 }
 
 @keyframes glitch-a {
@@ -144,52 +87,6 @@
     0%, 80% { transform: rotate(0deg) scale(1); }
     90% { transform: rotate(45deg) scale(1.35); }
     100% { transform: rotate(90deg) scale(1); }
-}
-
-.topnav {
-    display: flex;
-    gap: var(--space-1);
-}
-
-.topnav-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
-    font-family: var(--font-mono);
-    font-size: 0.78rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    text-decoration: none;
-    color: var(--muted);
-    border: 1px solid transparent;
-    transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease);
-}
-
-.topnav-link:hover {
-    color: var(--text);
-    border-color: var(--line);
-}
-
-.topnav-link.active {
-    color: var(--text);
-    border-color: var(--line);
-    background: var(--surface);
-}
-
-.topnav-link.active::before {
-    content: "";
-    width: 5px;
-    height: 5px;
-    background: var(--accent);
-    margin-right: 2px;
-}
-
-.topbar-right {
-    margin-left: auto;
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
 }
 
 .icon-btn {
@@ -211,35 +108,6 @@
     border-color: var(--line);
 }
 
-.me-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 10px;
-    font-family: var(--font-mono);
-    font-size: 0.8rem;
-    text-decoration: none;
-    border: 1px solid var(--line);
-    color: var(--text);
-}
-
-.me-link .star-glyph {
-    color: var(--accent);
-}
-
-.mod-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 3px 8px;
-    font-family: var(--font-mono);
-    font-size: 0.66rem;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: var(--on-accent);
-    background: var(--accent-2);
-}
-
 /* ---------- page ---------- */
 
 .page {
@@ -254,19 +122,6 @@
 }
 
 @media (max-width: 760px) {
-    .topnav {
-        display: none;
-    }
-
-    .topbar {
-        padding: 0 var(--space-3);
-        gap: var(--space-2);
-    }
-
-    .me-link span,
-    .mod-badge {
-        display: none;
-    }
 
     .bottombar {
         position: fixed;
@@ -318,7 +173,6 @@
 }
 
 /* on a profile, the profile's own grain and scanline settings take over */
-.shell:has(.profile-root) .shell-grain,
-.shell:has(.profile-root) .shell-scan {
+.shell:has(.profile-root) .shell-grain {
     display: none;
 }

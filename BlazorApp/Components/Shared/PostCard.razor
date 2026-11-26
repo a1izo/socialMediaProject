@@ -71,7 +71,6 @@
     [Parameter] public bool ShowAuthor { get; set; } = true;
     [Parameter] public bool ShowExcerpt { get; set; } = true;
     [Parameter] public bool Compact { get; set; }
-    [Parameter] public bool Themed { get; set; } = true;
 
     [CascadingParameter] public Task<AuthenticationState> State { get; set; } = default!;
 
@@ -79,7 +78,7 @@
     private bool busy;
     private string? error;
 
-    private bool IsThemed => Themed && !Compact && Card is not null;
+    private bool IsThemed => !Compact && Card is not null;
 
     private string ThemedClasses => IsThemed
         ? $"post-themed post-style-{CssValues.OneOf(Card!.Theme.CardStyle, "solid", "solid", "glass", "outline", "brutal", "hud", "bare")}"

@@ -14,15 +14,10 @@
         }
         <span class="user-tile-stats">@Card.Stats.FollowerCount followers · @Card.Stats.PostCount posts</span>
     </a>
-    @if (ChildContent is not null)
-    {
-        <div class="user-tile-actions">@ChildContent</div>
-    }
 </div>
 
 @code {
     [Parameter, EditorRequired] public ProfileCardDto Card { get; set; } = default!;
-    [Parameter] public RenderFragment? ChildContent { get; set; }
 
     private string BannerStyle => string.IsNullOrWhiteSpace(Card.BannerUrl)
         ? "background:linear-gradient(120deg, var(--accent), var(--accent-2));"

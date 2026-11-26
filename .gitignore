@@ -3,26 +3,26 @@ obj/
 /packages/
 riderModule.iml
 /_ReSharper.Caches/
-CLI/*.json
-# Data files written by the file repositories when running the Web API
+
+# Old data files from the JSON file storage (Parts 3-6), kept locally as a backup
 WebAPI/users.json
 WebAPI/follows.json
 WebAPI/posts.json
 WebAPI/postLikes.json
 WebAPI/postTags.json
+WebAPI/postMedia.json
 WebAPI/comments.json
 WebAPI/commentLikes.json
 WebAPI/tags.json
+WebAPI/profiles.json
+WebAPI/profileModules.json
+WebAPI/notifications.json
+WebAPI/conversations.json
+WebAPI/messages.json
 
 # Uploaded images
 WebAPI/wwwroot/uploads/*
 !WebAPI/wwwroot/uploads/.gitkeep
-WebAPI/profiles.json
-WebAPI/profileModules.json
-WebAPI/postMedia.json
-WebAPI/notifications.json
-WebAPI/conversations.json
-WebAPI/messages.json
 
 # SQLite database (recreated from the migrations on startup)
 EfcRepositories/app.db

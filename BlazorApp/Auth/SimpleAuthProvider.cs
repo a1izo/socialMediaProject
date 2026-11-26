@@ -61,7 +61,7 @@ public class SimpleAuthProvider : AuthenticationStateProvider
             return new AuthenticationState(CreatePrincipal(cachedUser));
         }
 
-        string userAsJson = "";
+        string userAsJson;
         try
         {
             userAsJson = await jsRuntime.InvokeAsync<string>("sessionStorage.getItem", StorageKey);

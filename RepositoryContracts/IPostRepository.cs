@@ -13,8 +13,6 @@ public interface IPostRepository
     //like logic
     Task LikeAsync(int postId, int userId);
     Task UnlikeAsync(int postId, int userId);
-    Task<int> GetLikeCountAsync(int postId);
-    IQueryable<int> GetLikerIds(int postId);
 
     //tag logic
     Task AddTagAsync(int postId, int tagId);
